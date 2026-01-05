@@ -14,6 +14,11 @@
 <main>
 
 <section class="card">
+  <h2>Groups</h2>
+  <button onclick="createGroup()">Create Group</button>
+</section>
+
+<section class="card">
   <h2>You are</h2>
   <input id="newUser" placeholder="Enter your name">
   <button onclick="addUser()">Add / Select</button>
@@ -45,6 +50,7 @@
 <section class="card">
   <h2>Balances</h2>
   <div id="balances"></div>
+  <button class="small-btn" onclick="resetGroup()">Reset Group</button>
 </section>
 
 <section class="card">
@@ -59,10 +65,11 @@
 
 <section class="card">
   <h2>Invite Friends</h2>
-  <button onclick="generateInvite()">Generate Invite Code</button>
+  <button onclick="generateInvite()">Generate Invite Link</button>
+  <button onclick="shareInvite()" class="small-btn">Share Invite</button>
   <pre id="inviteCode"></pre>
 
-  <input id="joinCode" placeholder="Paste invite code">
+  <input id="joinCode" placeholder="Paste invite link">
   <button onclick="joinGroup()">Join Group</button>
 </section>
 
