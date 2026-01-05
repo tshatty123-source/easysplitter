@@ -1,19 +1,15 @@
-let data = JSON.parse(localStorage.getItem("splitwise")) || {
-  users: [
-    { name: "Amit", upi: "" },
-    { name: "Rahul", upi: "" },
-    { name: "Neha", upi: "" }
-  ],
-  groups: [{
-    name: "Friends",
-    members: ["Amit", "Rahul", "Neha"],
+let data = JSON.parse(localStorage.getItem("easySplitter")) || {
+  users: [],
+  group: {
+    name: "Default Group",
+    members: [],
     expenses: []
-  }],
+  },
   settlements: []
 };
 
 function save() {
-  localStorage.setItem("splitwise", JSON.stringify(data));
+  localStorage.setItem("easySplitter", JSON.stringify(data));
   loadUI();
   showBalances();
   simplifyDebts();
@@ -23,37 +19,44 @@ function save() {
 
 function loadUI() {
   currentUser.innerHTML = "";
-  groupSelect.innerHTML = "";
-
-  data.users.forEach(u => currentUser.add(new Option(u.name)));
-  data.groups.forEach(g => groupSelect.add(new Option(g.name)));
-
+  data.users.forEach(u =>
+    currentUser.add(new Option(u.name, u.name))
+  );
   loadUserUPI();
 }
 
+function addUser() {
+  let name = newUser.value.trim();
+  if (!name) return;
+
+  if (!data.users.find(u => u.name === name)) {
+    data.users.push({ name, upi: "" });
+    data.group.members.push(name);
+  }
+
+  newUser.value = "";
+  save();
+  currentUser.value = name;
+}
+
 function loadUserUPI() {
-  let user = data.users.find(u => u.name === currentUser.value);
-  upiInput.value = user?.upi || "";
+  let u = data.users.find(x => x.name === currentUser.value);
+  upiInput.value = u?.upi || "";
 }
 
 currentUser.onchange = loadUserUPI;
 
-/* SAVE UPI */
 function saveUPI() {
-  let user = data.users.find(u => u.name === currentUser.value);
+  let u = data.users.find(x => x.name === currentUser.value);
   let upi = upiInput.value.trim();
-  if (!upi.includes("@")) {
-    alert("Enter a valid UPI ID");
-    return;
-  }
-  user.upi = upi;
+  if (!upi.includes("@")) return alert("Invalid UPI");
+  u.upi = upi;
   save();
 }
 
-/* BALANCES */
 function calculateBalances() {
   let bal = {};
-  data.groups[0].expenses.forEach(e => {
+  data.group.expenses.forEach(e => {
     for (let m in e.splits) {
       if (m !== e.paidBy) {
         bal[m] = (bal[m] || 0) - e.splits[m];
@@ -64,75 +67,51 @@ function calculateBalances() {
   return bal;
 }
 
-/* SMART SPLIT */
-function smartSplit(group, amt) {
+function smartSplit(amount) {
   let bal = calculateBalances();
-  let strength = aiStrength.value / 100;
-  let total = 0, w = {}, exp = "";
+  let s = aiStrength.value / 100;
+  let w = {}, total = 0, explain = "";
 
-  group.members.forEach(m => {
+  data.group.members.forEach(m => {
     let b = bal[m] || 0;
-    let adj = 1 - (b / 1000) * strength;
+    let adj = 1 - (b / 1000) * s;
     adj = Math.max(0.6, Math.min(1.4, adj));
     w[m] = adj;
     total += adj;
-    if (b > 0) exp += `• ${m} paid more earlier\n`;
-    if (b < 0) exp += `• ${m} owed earlier\n`;
+    if (b !== 0) explain += `${m} had previous balance\n`;
   });
 
-  aiExplain.textContent = exp || "";
-  let s = {};
-  group.members.forEach(m => s[m] = +(amt * w[m] / total).toFixed(2));
-  return s;
+  aiExplain.textContent = explain;
+  let res = {};
+  data.group.members.forEach(m =>
+    res[m] = +(amount * w[m] / total).toFixed(2)
+  );
+  return res;
 }
 
-/* ADD EXPENSE */
 function addExpense() {
-  let g = data.groups[0];
   let amt = +amount.value;
-  if (!amt) return;
+  if (!amt || !currentUser.value) return;
 
   let splits = splitType.value === "smart"
-    ? smartSplit(g, amt)
-    : Object.fromEntries(g.members.map(m => [m, amt / g.members.length]));
+    ? smartSplit(amt)
+    : Object.fromEntries(
+        data.group.members.map(m => [m, amt / data.group.members.length])
+      );
 
-  g.expenses.push({ paidBy: currentUser.value, splits });
+  data.group.expenses.push({ paidBy: currentUser.value, splits });
   amount.value = "";
   save();
 }
 
-/* SHOW BALANCES */
 function showBalances() {
   balances.innerHTML = "";
   let b = calculateBalances();
   for (let p in b) {
-    balances.innerHTML += `<div>${p} ${b[p] < 0 ? "owes ₹" + -b[p] : "gets ₹" + b[p]}</div>`;
+    balances.innerHTML += `<div>${p} ${b[p] < 0 ? "owes ₹" + (-b[p]).toFixed(2) : "gets ₹" + b[p].toFixed(2)}</div>`;
   }
 }
 
-/* PAY UPI */
-function payUPI(from, to, amt) {
-  let user = data.users.find(u => u.name === to);
-  if (!user.upi) {
-    alert("Creditor has not added UPI ID");
-    return;
-  }
-  let url = `upi://pay?pa=${user.upi}&pn=${to}&am=${amt}&cu=INR`;
-  window.location.href = url;
-
-  setTimeout(() => {
-    if (confirm("Have you paid?")) {
-      data.settlements.push({
-        from, to, amt,
-        status: "pending",
-        time: new Date().toLocaleString()
-      });
-      save();
-    }
-  }, 500);
-}
-
-/* SIMPLIFY */
 function simplifyDebts() {
   settle.innerHTML = "";
   let b = calculateBalances();
@@ -144,7 +123,7 @@ function simplifyDebts() {
       if(x.amt&&y.amt){
         let pay=Math.min(x.amt,y.amt);
         settle.innerHTML+=`
-          <div>${x.p} → ${y.p} ₹${pay}
+          <div>${x.p} → ${y.p} ₹${pay.toFixed(2)}
           <button class="small-btn" onclick="payUPI('${x.p}','${y.p}',${pay})">Pay</button>
           </div>`;
         x.amt-=pay; y.amt-=pay;
@@ -153,11 +132,22 @@ function simplifyDebts() {
   });
 }
 
-/* CONFIRM */
-function showConfirmations() {
-  confirmations.innerHTML = "";
+function payUPI(from,to,amt){
+  let u=data.users.find(x=>x.name===to);
+  if(!u?.upi)return alert("Creditor has no UPI");
+  window.location.href=`upi://pay?pa=${u.upi}&pn=${to}&am=${amt}&cu=INR`;
+  setTimeout(()=>{
+    if(confirm("Payment done?")){
+      data.settlements.push({from,to,amt,status:"pending",time:new Date().toLocaleString()});
+      save();
+    }
+  },500);
+}
+
+function showConfirmations(){
+  confirmations.innerHTML="";
   data.settlements
-    .filter(s => s.to === currentUser.value && s.status === "pending")
+    .filter(s=>s.to===currentUser.value && s.status==="pending")
     .forEach((s,i)=>{
       confirmations.innerHTML+=`
         <div>${s.from} paid ₹${s.amt}
@@ -166,20 +156,33 @@ function showConfirmations() {
     });
 }
 
-function confirmReceived(i) {
-  data.settlements[i].status = "confirmed";
+function confirmReceived(i){
+  data.settlements[i].status="confirmed";
   save();
 }
 
-/* HISTORY */
-function showHistory() {
-  history.innerHTML = "";
+function showHistory(){
+  history.innerHTML="";
   data.settlements
-    .filter(s => s.status === "confirmed")
+    .filter(s=>s.status==="confirmed")
     .forEach(s=>{
       history.innerHTML+=`<div>${s.from} → ${s.to} ₹${s.amt} (${s.time})</div>`;
     });
 }
 
-loadUI();
+function generateInvite(){
+  inviteCode.textContent = btoa(JSON.stringify(data.group));
+}
+
+function joinGroup(){
+  try{
+    let g=JSON.parse(atob(joinCode.value.trim()));
+    data.group=g;
+    save();
+    alert("Group joined");
+  }catch{
+    alert("Invalid code");
+  }
+}
+
 save();
