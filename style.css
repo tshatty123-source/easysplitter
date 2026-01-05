@@ -56,16 +56,16 @@ button {
 
 .small-btn {
   width: auto;
-  padding: 8px 12px;
-  font-size: 13px;
-  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-left: 8px;
 }
 
 pre {
   background: #f1f5f9;
   padding: 10px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 12px;
   white-space: pre-wrap;
 }
 
@@ -76,3 +76,4 @@ pre {
   padding: 8px 0;
   border-bottom: 1px solid #e5e7eb;
 }
+
