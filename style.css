@@ -1,0 +1,78 @@
+* {
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.top {
+  background: white;
+  padding: 16px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+main {
+  max-width: 460px;
+  margin: auto;
+  padding: 12px;
+}
+
+.card {
+  background: white;
+  padding: 14px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+input, select {
+  width: 100%;
+  padding: 11px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-size: 14px;
+}
+
+.small-btn {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+pre {
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+#balances div,
+#settle div,
+#confirmations div,
+#history div {
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
