@@ -1,10 +1,7 @@
 let data = JSON.parse(localStorage.getItem("easySplitter")) || {
   users: [],
-  group: {
-    name: "Default Group",
-    members: [],
-    expenses: []
-  },
+  groups: [],
+  activeGroup: null,
   settlements: []
 };
 
@@ -17,11 +14,24 @@ function save() {
   showHistory();
 }
 
+/* GROUPS */
+function createGroup() {
+  let name = prompt("Group name?");
+  if (!name) return;
+  let group = { name, members: [], expenses: [] };
+  data.groups.push(group);
+  data.activeGroup = name;
+  save();
+}
+
+function getGroup() {
+  return data.groups.find(g => g.name === data.activeGroup);
+}
+
+/* USERS */
 function loadUI() {
   currentUser.innerHTML = "";
-  data.users.forEach(u =>
-    currentUser.add(new Option(u.name, u.name))
-  );
+  data.users.forEach(u => currentUser.add(new Option(u.name, u.name)));
   loadUserUPI();
 }
 
@@ -31,7 +41,7 @@ function addUser() {
 
   if (!data.users.find(u => u.name === name)) {
     data.users.push({ name, upi: "" });
-    data.group.members.push(name);
+    getGroup().members.push(name);
   }
 
   newUser.value = "";
@@ -48,15 +58,18 @@ currentUser.onchange = loadUserUPI;
 
 function saveUPI() {
   let u = data.users.find(x => x.name === currentUser.value);
-  let upi = upiInput.value.trim();
-  if (!upi.includes("@")) return alert("Invalid UPI");
-  u.upi = upi;
+  if (!upiInput.value.includes("@")) return alert("Invalid UPI");
+  u.upi = upiInput.value.trim();
   save();
 }
 
+/* EXPENSES */
 function calculateBalances() {
   let bal = {};
-  data.group.expenses.forEach(e => {
+  let g = getGroup();
+  if (!g) return bal;
+
+  g.expenses.forEach(e => {
     for (let m in e.splits) {
       if (m !== e.paidBy) {
         bal[m] = (bal[m] || 0) - e.splits[m];
@@ -70,20 +83,19 @@ function calculateBalances() {
 function smartSplit(amount) {
   let bal = calculateBalances();
   let s = aiStrength.value / 100;
-  let w = {}, total = 0, explain = "";
+  let total = 0, w = {}, explain = "";
 
-  data.group.members.forEach(m => {
-    let b = bal[m] || 0;
-    let adj = 1 - (b / 1000) * s;
+  getGroup().members.forEach(m => {
+    let adj = 1 - ((bal[m] || 0) / 1000) * s;
     adj = Math.max(0.6, Math.min(1.4, adj));
     w[m] = adj;
     total += adj;
-    if (b !== 0) explain += `${m} had previous balance\n`;
+    if (bal[m]) explain += `${m} had previous balance\n`;
   });
 
   aiExplain.textContent = explain;
   let res = {};
-  data.group.members.forEach(m =>
+  getGroup().members.forEach(m =>
     res[m] = +(amount * w[m] / total).toFixed(2)
   );
   return res;
@@ -96,14 +108,15 @@ function addExpense() {
   let splits = splitType.value === "smart"
     ? smartSplit(amt)
     : Object.fromEntries(
-        data.group.members.map(m => [m, amt / data.group.members.length])
+        getGroup().members.map(m => [m, amt / getGroup().members.length])
       );
 
-  data.group.expenses.push({ paidBy: currentUser.value, splits });
+  getGroup().expenses.push({ paidBy: currentUser.value, splits });
   amount.value = "";
   save();
 }
 
+/* BALANCES */
 function showBalances() {
   balances.innerHTML = "";
   let b = calculateBalances();
@@ -112,6 +125,7 @@ function showBalances() {
   }
 }
 
+/* SETTLEMENT */
 function simplifyDebts() {
   settle.innerHTML = "";
   let b = calculateBalances();
@@ -170,19 +184,58 @@ function showHistory(){
     });
 }
 
+/* RESET */
+function resetGroup(){
+  if(!confirm("Reset this group?")) return;
+  let g=getGroup();
+  g.expenses=[];
+  data.settlements=[];
+  save();
+}
+
+/* INVITE LINK */
 function generateInvite(){
-  inviteCode.textContent = btoa(JSON.stringify(data.group));
+  let code=btoa(JSON.stringify(getGroup()));
+  let link=`${location.origin}${location.pathname}?join=${code}`;
+  inviteCode.textContent=link;
+}
+
+function shareInvite(){
+  let link=inviteCode.textContent;
+  if(!link)return alert("Generate invite first");
+  if(navigator.share){
+    navigator.share({title:"Easy Splitter",text:"Join my group",url:link});
+  }else{
+    navigator.clipboard.writeText(link);
+    alert("Link copied");
+  }
 }
 
 function joinGroup(){
   try{
-    let g=JSON.parse(atob(joinCode.value.trim()));
-    data.group=g;
+    let g=JSON.parse(atob(joinCode.value.split("join=")[1]));
+    data.groups.push(g);
+    data.activeGroup=g.name;
     save();
-    alert("Group joined");
+    alert("Joined group");
   }catch{
-    alert("Invalid code");
+    alert("Invalid link");
   }
 }
+
+/* AUTO JOIN */
+(function(){
+  let p=new URLSearchParams(location.search);
+  let c=p.get("join");
+  if(!c)return;
+  try{
+    let g=JSON.parse(atob(c));
+    data.groups.push(g);
+    data.activeGroup=g.name;
+    save();
+    history.replaceState({},document.title,location.pathname);
+    alert("Group joined!");
+  }catch{}
+})();
 
 save();
