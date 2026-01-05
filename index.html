@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Splitwise+</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <h1>Splitwise+</h1>
+</header>
+
+<main>
+
+<section class="card">
+  <h2>You are</h2>
+  <select id="currentUser"></select>
+</section>
+
+<section class="card">
+  <h2>Your UPI ID</h2>
+  <input id="upiInput" placeholder="example@upi">
+  <button onclick="saveUPI()">Save</button>
+</section>
+
+<section class="card">
+  <h2>Add expense</h2>
+  <select id="groupSelect"></select>
+  <input id="amount" type="number" placeholder="Amount">
+
+  <select id="splitType">
+    <option value="equal">Equal split</option>
+    <option value="smart">Smart split</option>
+  </select>
+
+  <label>AI strength</label>
+  <input type="range" id="aiStrength" min="0" max="100" value="50">
+
+  <button onclick="addExpense()">Add</button>
+  <pre id="aiExplain"></pre>
+</section>
+
+<section class="card">
+  <h2>Balances</h2>
+  <div id="balances"></div>
+</section>
+
+<section class="card">
+  <h2>Settle up</h2>
+  <div id="settle"></div>
+</section>
+
+<section class="card">
+  <h2>Confirm payments</h2>
+  <div id="confirmations"></div>
+</section>
+
+<section class="card">
+  <h2>History</h2>
+  <div id="history"></div>
+</section>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
