@@ -37,10 +37,13 @@ function loadUI() {
 
 function addUser() {
   let name = newUser.value.trim();
-  if (!name) return;
+  if (!name || !getGroup()) return;
 
   if (!data.users.find(u => u.name === name)) {
     data.users.push({ name, upi: "" });
+  }
+
+  if (!getGroup().members.includes(name)) {
     getGroup().members.push(name);
   }
 
@@ -193,37 +196,37 @@ function resetGroup(){
   save();
 }
 
-/* INVITE LINK */
+/* INVITE + SHARE (FIXED) */
 function generateInvite(){
   let code=btoa(JSON.stringify(getGroup()));
   let link=`${location.origin}${location.pathname}?join=${code}`;
   inviteCode.textContent=link;
 }
 
-function shareInvite(){
-  let link=inviteCode.textContent;
-  if(!link)return alert("Generate invite first");
-  if(navigator.share){
-    navigator.share({title:"Easy Splitter",text:"Join my group",url:link});
-  }else{
-    navigator.clipboard.writeText(link);
-    alert("Link copied");
+function shareInvite() {
+  if (!inviteCode.textContent) generateInvite();
+
+  let link = inviteCode.textContent;
+  let message = `Join my Easy Splitter group:\n${link}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: "Easy Splitter Invite",
+      text: message,
+      url: link
+    }).catch(() => fallbackShare(message));
+  } else {
+    fallbackShare(message);
   }
 }
 
-function joinGroup(){
-  try{
-    let g=JSON.parse(atob(joinCode.value.split("join=")[1]));
-    data.groups.push(g);
-    data.activeGroup=g.name;
-    save();
-    alert("Joined group");
-  }catch{
-    alert("Invalid link");
-  }
+function fallbackShare(message) {
+  let wa = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  window.open(wa, "_blank");
+  navigator.clipboard.writeText(message).catch(()=>{});
 }
 
-/* AUTO JOIN */
+/* AUTO JOIN FROM LINK */
 (function(){
   let p=new URLSearchParams(location.search);
   let c=p.get("join");
@@ -234,7 +237,7 @@ function joinGroup(){
     data.activeGroup=g.name;
     save();
     history.replaceState({},document.title,location.pathname);
-    alert("Group joined!");
+    alert("Group joined successfully!");
   }catch{}
 })();
 
