@@ -1,43 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Splitwise+</title>
+  <title>Easy Splitter</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="top">
-  <h1>Splitwise+</h1>
+  <h1>Easy Splitter</h1>
 </header>
 
 <main>
 
 <section class="card">
   <h2>You are</h2>
+  <input id="newUser" placeholder="Enter your name">
+  <button onclick="addUser()">Add / Select</button>
   <select id="currentUser"></select>
 </section>
 
 <section class="card">
   <h2>Your UPI ID</h2>
   <input id="upiInput" placeholder="example@upi">
-  <button onclick="saveUPI()">Save</button>
+  <button onclick="saveUPI()">Save UPI</button>
 </section>
 
 <section class="card">
-  <h2>Add expense</h2>
-  <select id="groupSelect"></select>
+  <h2>Add Expense</h2>
   <input id="amount" type="number" placeholder="Amount">
 
   <select id="splitType">
-    <option value="equal">Equal split</option>
-    <option value="smart">Smart split</option>
+    <option value="equal">Equal Split</option>
+    <option value="smart">Smart AI Split</option>
   </select>
 
-  <label>AI strength</label>
+  <label>AI Strength</label>
   <input type="range" id="aiStrength" min="0" max="100" value="50">
 
-  <button onclick="addExpense()">Add</button>
+  <button onclick="addExpense()">Add Expense</button>
   <pre id="aiExplain"></pre>
 </section>
 
@@ -47,13 +48,22 @@
 </section>
 
 <section class="card">
-  <h2>Settle up</h2>
+  <h2>Settle Up</h2>
   <div id="settle"></div>
 </section>
 
 <section class="card">
-  <h2>Confirm payments</h2>
+  <h2>Confirm Payments</h2>
   <div id="confirmations"></div>
+</section>
+
+<section class="card">
+  <h2>Invite Friends</h2>
+  <button onclick="generateInvite()">Generate Invite Code</button>
+  <pre id="inviteCode"></pre>
+
+  <input id="joinCode" placeholder="Paste invite code">
+  <button onclick="joinGroup()">Join Group</button>
 </section>
 
 <section class="card">
