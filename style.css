@@ -5,19 +5,18 @@
 
 body {
   margin: 0;
-  background: #f8fafc;
-  color: #0f172a;
+  background: #f4f6f8;
 }
 
-.top {
+header {
   background: white;
   padding: 16px;
   text-align: center;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #ddd;
 }
 
 main {
-  max-width: 460px;
+  max-width: 420px;
   margin: auto;
   padding: 12px;
 }
@@ -25,54 +24,50 @@ main {
 .card {
   background: white;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: 12px;
   margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ddd;
 }
 
 h2 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 14px;
 }
 
 input, select {
   width: 100%;
-  padding: 11px;
-  margin-top: 8px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 
 button {
   width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
   border: none;
   background: #2563eb;
   color: white;
   font-size: 14px;
 }
 
-.small-btn {
-  width: auto;
-  padding: 6px 10px;
+button.small {
+  background: #16a34a;
   font-size: 12px;
-  margin-top: 6px;
 }
 
 pre {
-  background: #f1f5f9;
-  padding: 10px;
-  border-radius: 10px;
+  background: #eef2ff;
+  padding: 8px;
+  border-radius: 8px;
   font-size: 12px;
   white-space: pre-wrap;
 }
 
 #balances div,
-#settle div,
-#confirmations div,
-#history div {
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
+#settle div {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
 }
