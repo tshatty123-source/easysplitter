@@ -54,6 +54,7 @@ button {
   border: none;
   background: #2563eb;
   color: white;
+  font-size: 14px;
 }
 
 button.secondary {
@@ -66,4 +67,40 @@ pre {
   border-radius: 10px;
   font-size: 12px;
   white-space: pre-wrap;
+}
+
+.list div {
+  padding: 6px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* TOAST */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+#toast.show {
+  opacity: 1;
+  bottom: 30px;
+}
+
+#toast.success {
+  background: #16a34a;
+}
+
+#toast.error {
+  background: #dc2626;
 }
