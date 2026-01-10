@@ -11,19 +11,27 @@ function save() {
   showSettlements();
 }
 
+/* TOAST */
+function showToast(msg, type = "error") {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.className = `show ${type}`;
+  setTimeout(() => toast.className = "", 2500);
+}
+
 /* GROUP */
 function createGroup() {
   let name = groupName.value.trim();
-  if (!name) return alert("Enter group name");
+  if (!name) return showToast("👥 Please enter a group name");
 
   if (data.groups.find(g => g.name === name))
-    return alert("Group already exists");
+    return showToast("⚠️ Group already exists");
 
   data.groups.push({ name, members: [], expenses: [] });
   data.activeGroup = name;
   groupName.value = "";
   save();
-  alert("Group created!");
+  showToast("✅ Group created successfully", "success");
 }
 
 function getGroup() {
@@ -34,7 +42,8 @@ function getGroup() {
 function addUser() {
   let name = newUser.value.trim();
   let g = getGroup();
-  if (!name || !g) return alert("Create a group first");
+  if (!g) return showToast("📛 Create a group first");
+  if (!name) return showToast("🙋 Enter your name");
 
   if (!data.users.find(u => u.name === name))
     data.users.push({ name, upi: "" });
@@ -45,6 +54,7 @@ function addUser() {
   currentUser.value = name;
   newUser.value = "";
   save();
+  showToast("👤 User added", "success");
 }
 
 function renderUsers() {
@@ -55,16 +65,22 @@ function renderUsers() {
 /* UPI */
 function saveUPI() {
   let u = data.users.find(x => x.name === currentUser.value);
-  if (!u) return;
+  if (!u) return showToast("Select your name first");
+  if (!upiInput.value.includes("@"))
+    return showToast("💳 Enter a valid UPI ID");
+
   u.upi = upiInput.value.trim();
   save();
+  showToast("🏦 UPI saved", "success");
 }
 
 /* EXPENSE */
 function addExpense() {
   let amt = +amount.value;
   let g = getGroup();
-  if (!amt || !g) return;
+  if (!g) return showToast("Create a group first");
+  if (!currentUser.value) return showToast("Select your name");
+  if (!amt || amt <= 0) return showToast("Enter valid amount");
 
   let per = amt / g.members.length;
   let split = {};
@@ -73,6 +89,7 @@ function addExpense() {
   g.expenses.push({ paidBy: currentUser.value, split });
   amount.value = "";
   save();
+  showToast("🧾 Expense added", "success");
 }
 
 /* BALANCES */
@@ -96,27 +113,33 @@ function showBalances() {
   balances.innerHTML = "";
   let b = calculateBalances();
   for (let p in b) {
-    balances.innerHTML += `<div>${p} ${b[p] < 0 ? "owes ₹" + (-b[p]).toFixed(2) : "gets ₹" + b[p].toFixed(2)}</div>`;
+    balances.innerHTML += `
+      <div>
+        ${p} ${b[p] < 0 ? "owes ₹" + (-b[p]).toFixed(2) : "gets ₹" + b[p].toFixed(2)}
+      </div>`;
   }
 }
 
-/* SETTLE */
+/* SETTLEMENT VIEW */
 function showSettlements() {
   settle.innerHTML = "";
   let b = calculateBalances();
   for (let p in b) {
     if (b[p] < 0)
-      settle.innerHTML += `<div>${p} needs to pay ₹${(-b[p]).toFixed(2)}</div>`;
+      settle.innerHTML += `<div>💸 ${p} needs to pay ₹${(-b[p]).toFixed(2)}</div>`;
   }
 }
 
 /* INVITE */
 function generateInvite() {
   let g = getGroup();
-  if (!g) return alert("No group found");
+  if (!g) return showToast("Create a group first");
 
   let code = btoa(JSON.stringify(g));
-  inviteCode.textContent = location.origin + location.pathname + "?join=" + code;
+  inviteCode.textContent =
+    location.origin + location.pathname + "?join=" + code;
+
+  showToast("🔗 Invite link generated", "success");
 }
 
 function shareInvite() {
@@ -138,7 +161,7 @@ function shareInvite() {
     data.groups.push(g);
     data.activeGroup = g.name;
     save();
-    alert("Group joined!");
+    showToast("🎉 Group joined successfully", "success");
     history.replaceState({}, "", location.pathname);
   } catch {}
 })();
