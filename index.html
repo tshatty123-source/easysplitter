@@ -1,25 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Easy Splitter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Easy Splitter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <header>
   <h1>💸 Easy Splitter</h1>
   <p class="tagline">
-    Split group expenses easily.<br>
-    Track balances and settle via UPI with confirmation.
+    Split group expenses smartly.<br>
+    Track balances & settle via UPI.
   </p>
 </header>
 
 <main>
 
 <section class="card">
-  <h2>👥 Group</h2>
+  <h2>👥 Create Group</h2>
+  <input id="groupName" placeholder="Enter group name">
   <button onclick="createGroup()">Create Group</button>
 </section>
 
@@ -44,17 +46,12 @@
 
 <section class="card">
   <h2>📊 Balances</h2>
-  <div id="balances" class="list"></div>
+  <div id="balances"></div>
 </section>
 
 <section class="card">
   <h2>💰 Settle Payments</h2>
-  <div id="settle" class="list"></div>
-</section>
-
-<section class="card">
-  <h2>✅ Payment Confirmations</h2>
-  <div id="confirmations" class="list"></div>
+  <div id="settle"></div>
 </section>
 
 <section class="card">
