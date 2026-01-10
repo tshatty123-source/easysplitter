@@ -5,14 +5,25 @@
 
 body {
   margin: 0;
-  background: #f4f6f8;
+  background: linear-gradient(#f8fafc, #eef2ff);
 }
 
 header {
   background: white;
-  padding: 16px;
   text-align: center;
-  border-bottom: 1px solid #ddd;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.tagline {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #64748b;
 }
 
 main {
@@ -24,50 +35,66 @@ main {
 .card {
   background: white;
   padding: 14px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  border: 1px solid #ddd;
+  border-radius: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
 h2 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 14px;
 }
 
 input, select {
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   margin-top: 6px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
 }
 
 button {
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   margin-top: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   background: #2563eb;
   color: white;
   font-size: 14px;
 }
 
-button.small {
+button.secondary {
   background: #16a34a;
-  font-size: 12px;
 }
 
+button.small {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.pending { background: #fde68a; }
+.paid { background: #bfdbfe; }
+.settled { background: #bbf7d0; }
+
 pre {
-  background: #eef2ff;
-  padding: 8px;
-  border-radius: 8px;
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 10px;
   font-size: 12px;
   white-space: pre-wrap;
 }
 
-#balances div,
-#settle div {
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
+.list div {
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
