@@ -1,20 +1,22 @@
 let data = JSON.parse(localStorage.getItem("easySplitter")) || {
   users: [],
   groups: [],
-  activeGroup: null
+  activeGroup: null,
+  payments: []
 };
 
 function save() {
   localStorage.setItem("easySplitter", JSON.stringify(data));
   renderUsers();
   showBalances();
-  simplifyDebts();
+  showSettlements();
+  showConfirmations();
 }
 
+/* GROUP */
 function createGroup() {
   let name = prompt("Enter group name");
   if (!name) return;
-
   data.groups.push({ name, members: [], expenses: [] });
   data.activeGroup = name;
   save();
@@ -27,18 +29,14 @@ function getGroup() {
 /* USERS */
 function addUser() {
   let name = newUser.value.trim();
-  if (!name || !getGroup()) {
-    alert("Create a group first");
-    return;
-  }
+  let g = getGroup();
+  if (!name || !g) return alert("Create a group first");
 
-  if (!data.users.find(u => u.name === name)) {
+  if (!data.users.find(u => u.name === name))
     data.users.push({ name, upi: "" });
-  }
 
-  if (!getGroup().members.includes(name)) {
-    getGroup().members.push(name);
-  }
+  if (!g.members.includes(name))
+    g.members.push(name);
 
   currentUser.value = name;
   newUser.value = "";
@@ -55,17 +53,12 @@ function renderUsers() {
   upiInput.value = u?.upi || "";
 }
 
-currentUser.onchange = () => {
-  let u = data.users.find(x => x.name === currentUser.value);
-  upiInput.value = u?.upi || "";
-};
+currentUser.onchange = renderUsers;
 
 function saveUPI() {
   let u = data.users.find(x => x.name === currentUser.value);
-  if (!u || !upiInput.value.includes("@")) {
-    alert("Invalid UPI");
-    return;
-  }
+  if (!u || !upiInput.value.includes("@"))
+    return alert("Invalid UPI");
   u.upi = upiInput.value.trim();
   save();
 }
@@ -110,58 +103,85 @@ function showBalances() {
   }
 }
 
-/* SETTLE */
-function simplifyDebts() {
+/* PAYMENTS */
+function showSettlements() {
   settle.innerHTML = "";
   let b = calculateBalances();
-  let debtors = [], creditors = [];
+  let d=[], c=[];
 
   for (let p in b) {
-    if (b[p] < 0) debtors.push({ p, a: -b[p] });
-    else creditors.push({ p, a: b[p] });
+    if (b[p] < 0) d.push({ p, a: -b[p] });
+    else c.push({ p, a: b[p] });
   }
 
-  debtors.forEach(d => {
-    creditors.forEach(c => {
-      if (d.a && c.a) {
-        let pay = Math.min(d.a, c.a);
-        settle.innerHTML += `<div>${d.p} → ${c.p} ₹${pay.toFixed(2)}</div>`;
-        d.a -= pay;
-        c.a -= pay;
+  d.forEach(x => {
+    c.forEach(y => {
+      if (x.a && y.a) {
+        let amt = Math.min(x.a, y.a);
+        settle.innerHTML += `
+          <div>
+            ${x.p} → ${y.p} ₹${amt.toFixed(2)}
+            <span class="badge pending">Pending</span>
+            <button class="small" onclick="pay('${x.p}','${y.p}',${amt})">Pay</button>
+          </div>`;
+        x.a -= amt;
+        y.a -= amt;
       }
     });
   });
 }
 
-/* INVITE — FINAL FIX */
+function pay(from, to, amt) {
+  let u = data.users.find(x => x.name === to);
+  if (!u?.upi) return alert("Creditor UPI not set");
+
+  window.location.href = `upi://pay?pa=${u.upi}&pn=${to}&am=${amt}&cu=INR`;
+
+  setTimeout(() => {
+    if (confirm("Have you completed the payment?")) {
+      data.payments.push({ from, to, amt, status: "paid" });
+      save();
+    }
+  }, 500);
+}
+
+function showConfirmations() {
+  confirmations.innerHTML = "";
+  data.payments
+    .filter(p => p.to === currentUser.value && p.status === "paid")
+    .forEach((p, i) => {
+      confirmations.innerHTML += `
+        <div>
+          ${p.from} paid ₹${p.amt}
+          <span class="badge paid">Paid</span>
+          <button class="small" onclick="confirmPayment(${i})">Confirm</button>
+        </div>`;
+    });
+}
+
+function confirmPayment(i) {
+  data.payments[i].status = "settled";
+  save();
+}
+
+/* INVITE */
 function generateInvite() {
-  let group = getGroup();
-  if (!group) {
-    alert("Please create a group first!");
-    return;
-  }
+  let g = getGroup();
+  if (!g) return alert("Create a group first");
 
-  let code = btoa(encodeURIComponent(JSON.stringify(group)));
+  let code = btoa(encodeURIComponent(JSON.stringify(g)));
+  let base = location.origin === "null"
+    ? location.href.split("?")[0]
+    : location.origin + location.pathname;
 
-  let base =
-    location.origin === "null"
-      ? location.href.split("?")[0]
-      : location.origin + location.pathname;
-
-  let link = `${base}?join=${code}`;
-  inviteCode.textContent = link;
+  inviteCode.textContent = `${base}?join=${code}`;
 }
 
 function shareInvite() {
   if (!inviteCode.textContent) generateInvite();
-
   let msg = `Join my Easy Splitter group:\n${inviteCode.textContent}`;
-  if (navigator.share) {
-    navigator.share({ title: "Easy Splitter", text: msg });
-  } else {
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-    navigator.clipboard.writeText(msg);
-  }
+  if (navigator.share) navigator.share({ title: "Easy Splitter", text: msg });
+  else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 /* AUTO JOIN */
@@ -169,7 +189,6 @@ function shareInvite() {
   let p = new URLSearchParams(location.search);
   let c = p.get("join");
   if (!c) return;
-
   try {
     let g = JSON.parse(decodeURIComponent(atob(c)));
     data.groups.push(g);
@@ -177,9 +196,8 @@ function shareInvite() {
     save();
     history.replaceState({}, document.title, location.pathname);
     alert("Group joined successfully!");
-  } catch {
-    alert("Invalid invite link");
-  }
+  } catch {}
 })();
 
 save();
+
