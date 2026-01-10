@@ -1,8 +1,7 @@
 let data = JSON.parse(localStorage.getItem("easySplitter")) || {
   users: [],
   groups: [],
-  activeGroup: null,
-  payments: []
+  activeGroup: null
 };
 
 function save() {
@@ -10,16 +9,21 @@ function save() {
   renderUsers();
   showBalances();
   showSettlements();
-  showConfirmations();
 }
 
 /* GROUP */
 function createGroup() {
-  let name = prompt("Enter group name");
-  if (!name) return;
+  let name = groupName.value.trim();
+  if (!name) return alert("Enter group name");
+
+  if (data.groups.find(g => g.name === name))
+    return alert("Group already exists");
+
   data.groups.push({ name, members: [], expenses: [] });
   data.activeGroup = name;
+  groupName.value = "";
   save();
+  alert("Group created!");
 }
 
 function getGroup() {
@@ -45,20 +49,13 @@ function addUser() {
 
 function renderUsers() {
   currentUser.innerHTML = "";
-  data.users.forEach(u =>
-    currentUser.add(new Option(u.name, u.name))
-  );
-
-  let u = data.users.find(x => x.name === currentUser.value);
-  upiInput.value = u?.upi || "";
+  data.users.forEach(u => currentUser.add(new Option(u.name, u.name)));
 }
 
-currentUser.onchange = renderUsers;
-
+/* UPI */
 function saveUPI() {
   let u = data.users.find(x => x.name === currentUser.value);
-  if (!u || !upiInput.value.includes("@"))
-    return alert("Invalid UPI");
+  if (!u) return;
   u.upi = upiInput.value.trim();
   save();
 }
@@ -67,7 +64,7 @@ function saveUPI() {
 function addExpense() {
   let amt = +amount.value;
   let g = getGroup();
-  if (!amt || !currentUser.value || !g) return;
+  if (!amt || !g) return;
 
   let per = amt / g.members.length;
   let split = {};
@@ -80,19 +77,19 @@ function addExpense() {
 
 /* BALANCES */
 function calculateBalances() {
-  let bal = {};
+  let b = {};
   let g = getGroup();
-  if (!g) return bal;
+  if (!g) return b;
 
   g.expenses.forEach(e => {
     for (let m in e.split) {
       if (m !== e.paidBy) {
-        bal[m] = (bal[m] || 0) - e.split[m];
-        bal[e.paidBy] = (bal[e.paidBy] || 0) + e.split[m];
+        b[m] = (b[m] || 0) - e.split[m];
+        b[e.paidBy] = (b[e.paidBy] || 0) + e.split[m];
       }
     }
   });
-  return bal;
+  return b;
 }
 
 function showBalances() {
@@ -103,101 +100,47 @@ function showBalances() {
   }
 }
 
-/* PAYMENTS */
+/* SETTLE */
 function showSettlements() {
   settle.innerHTML = "";
   let b = calculateBalances();
-  let d=[], c=[];
-
   for (let p in b) {
-    if (b[p] < 0) d.push({ p, a: -b[p] });
-    else c.push({ p, a: b[p] });
+    if (b[p] < 0)
+      settle.innerHTML += `<div>${p} needs to pay ₹${(-b[p]).toFixed(2)}</div>`;
   }
-
-  d.forEach(x => {
-    c.forEach(y => {
-      if (x.a && y.a) {
-        let amt = Math.min(x.a, y.a);
-        settle.innerHTML += `
-          <div>
-            ${x.p} → ${y.p} ₹${amt.toFixed(2)}
-            <span class="badge pending">Pending</span>
-            <button class="small" onclick="pay('${x.p}','${y.p}',${amt})">Pay</button>
-          </div>`;
-        x.a -= amt;
-        y.a -= amt;
-      }
-    });
-  });
-}
-
-function pay(from, to, amt) {
-  let u = data.users.find(x => x.name === to);
-  if (!u?.upi) return alert("Creditor UPI not set");
-
-  window.location.href = `upi://pay?pa=${u.upi}&pn=${to}&am=${amt}&cu=INR`;
-
-  setTimeout(() => {
-    if (confirm("Have you completed the payment?")) {
-      data.payments.push({ from, to, amt, status: "paid" });
-      save();
-    }
-  }, 500);
-}
-
-function showConfirmations() {
-  confirmations.innerHTML = "";
-  data.payments
-    .filter(p => p.to === currentUser.value && p.status === "paid")
-    .forEach((p, i) => {
-      confirmations.innerHTML += `
-        <div>
-          ${p.from} paid ₹${p.amt}
-          <span class="badge paid">Paid</span>
-          <button class="small" onclick="confirmPayment(${i})">Confirm</button>
-        </div>`;
-    });
-}
-
-function confirmPayment(i) {
-  data.payments[i].status = "settled";
-  save();
 }
 
 /* INVITE */
 function generateInvite() {
   let g = getGroup();
-  if (!g) return alert("Create a group first");
+  if (!g) return alert("No group found");
 
-  let code = btoa(encodeURIComponent(JSON.stringify(g)));
-  let base = location.origin === "null"
-    ? location.href.split("?")[0]
-    : location.origin + location.pathname;
-
-  inviteCode.textContent = `${base}?join=${code}`;
+  let code = btoa(JSON.stringify(g));
+  inviteCode.textContent = location.origin + location.pathname + "?join=" + code;
 }
 
 function shareInvite() {
   if (!inviteCode.textContent) generateInvite();
-  let msg = `Join my Easy Splitter group:\n${inviteCode.textContent}`;
-  if (navigator.share) navigator.share({ title: "Easy Splitter", text: msg });
-  else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  let msg = "Join my Easy Splitter group:\n" + inviteCode.textContent;
+
+  if (navigator.share)
+    navigator.share({ title: "Easy Splitter", text: msg });
+  else
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg));
 }
 
 /* AUTO JOIN */
 (function () {
-  let p = new URLSearchParams(location.search);
-  let c = p.get("join");
+  let c = new URLSearchParams(location.search).get("join");
   if (!c) return;
   try {
-    let g = JSON.parse(decodeURIComponent(atob(c)));
+    let g = JSON.parse(atob(c));
     data.groups.push(g);
     data.activeGroup = g.name;
     save();
-    history.replaceState({}, document.title, location.pathname);
-    alert("Group joined successfully!");
+    alert("Group joined!");
+    history.replaceState({}, "", location.pathname);
   } catch {}
 })();
 
 save();
-
