@@ -1,359 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Splitter</title>
+  <meta charset="UTF-8" />
+  <title>Easy Splitter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      background: #f4f6fb;
+      margin: 0;
+      padding: 0;
+    }
 
-<style>
-body{margin:0;font-family:system-ui;background:#f4f6fb}
-header{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;padding:18px;text-align:center}
-.container{padding:16px}
-.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
-input,button{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:1px solid #d1d5db}
-button{background:#4f46e5;color:#fff;border:none;font-weight:600}
-.secondary{background:#22c55e}
-.pay{background:#0ea5e9}
-.gray{background:#6b7280}
-.hidden{display:none}
-.group{border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px}
-.payment{border-bottom:1px solid #e5e7eb;padding:6px 0}
-.settle{border-bottom:1px dashed #e5e7eb;padding:8px 0}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:14px 18px;border-radius:10px;display:none;z-index:999}
-.small{font-size:13px;color:#6b7280}
-</style>
+    header {
+      background: #4f46e5;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .group button {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-<h2><i class="fa-solid fa-coins"></i> Easy Splitter</h2>
-<p class="small">Split • Track • Settle via UPI</p>
-</header>
+<header>Easy Splitter</header>
 
 <div class="container">
 
-<div class="card" id="loginCard">
-<h3>Welcome 👋</h3>
-<button onclick="login()"><i class="fa-brands fa-google"></i> Continue with Google</button>
-</div>
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <p class="small">Split expenses with friends in real-time.</p>
+    <button id="loginBtn">Sign in with Google</button>
+  </div>
 
-<div class="card hidden" id="userCard">
-<h3>Hello, <span id="userName"></span></h3>
-</div>
+  <!-- USER -->
+  <div class="card hidden" id="userCard">
+    <p id="userName"></p>
+    <button class="secondary" id="logoutBtn">Logout</button>
+  </div>
 
-<div class="card hidden" id="groupCard">
-<h3>Create Group</h3>
-<input id="groupName" placeholder="Trip / Flat / Party">
-<button onclick="createGroup()">Create Group</button>
+  <!-- CREATE GROUP -->
+  <div class="card hidden" id="createGroupCard">
+    <h3>Create Group</h3>
+    <input id="groupName" placeholder="Group name" />
+    <button id="createGroupBtn">Create</button>
+  </div>
 
-<h4 style="margin-top:16px">Join Group</h4>
-<input id="joinCode" placeholder="Paste invite code">
-<button class="secondary" onclick="joinGroup()">Join</button>
-</div>
+  <!-- GROUP LIST -->
+  <div class="card hidden" id="groupsCard">
+    <h3>Your Groups</h3>
+    <div id="groupsList"></div>
+  </div>
 
-<div class="card hidden" id="groupsCard">
-<h3>Your Groups</h3>
-<div id="groups"></div>
-</div>
+  <!-- GROUP DETAILS -->
+  <div class="card hidden" id="groupDetailsCard">
+    <h3 id="currentGroupName"></h3>
 
-<div class="card hidden" id="groupDetailsCard">
-<h3 id="currentGroupName"></h3>
+    <input id="paymentDesc" placeholder="What did you pay for?" />
+    <input id="paymentAmount" type="number" placeholder="Amount" />
+    <button id="addPaymentBtn">Add Payment</button>
 
-<p class="small">Invite Code:</p>
-<input id="inviteCode" readonly>
-<button class="gray" onclick="copyInvite()">Copy Invite Link</button>
-
-<hr>
-
-<input id="payerName" placeholder="Your name">
-<input id="upiId" placeholder="Your UPI ID">
-<input id="amount" placeholder="Amount paid">
-<input id="note" placeholder="Note (optional)">
-<button onclick="addPayment()">Add Payment</button>
-
-<h4>Payments</h4>
-<div id="paymentList"></div>
-
-<h4>Settlement</h4>
-<div id="balances"></div>
-
-<h4>Settlement History</h4>
-<div id="history"></div>
-</div>
+    <h4>Payments</h4>
+    <div id="paymentsList" class="small"></div>
+  </div>
 
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, getDoc, onSnapshot, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  // 🔥 Firebase imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig = {
- apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
- authDomain: "easysplitter-c5a4c.firebaseapp.com",
- projectId: "easysplitter-c5a4c",
- storageBucket: "easysplitter-c5a4c.firebasestorage.app",
- messagingSenderId: "582888920406",
- appId: "1:582888920406:web:1d80e0b7b952f97ce9b2f7"
-};
+  // 🔐 Firebase config (YOURS)
+  const firebaseConfig = {
+    apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
+    authDomain: "easysplitter-c5a4c.firebaseapp.com",
+    projectId: "easysplitter-c5a4c",
+    storageBucket: "easysplitter-c5a4c.firebasestorage.app",
+    messagingSenderId: "582888920406",
+    appId: "1:582888920406:web:1d80e0b7b952f97ce9b2f7"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  // Init
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
 
-let currentUser=null,currentGroup=null,groupUnsub=null;
+  let currentUser = null;
+  let currentGroup = null;
+  let groupUnsubscribe = null;
 
-function toast(msg){const t=document.getElementById("toast");t.innerText=msg;t.style.display="block";setTimeout(()=>t.style.display="none",3000);}
+  // Elements
+  const loginCard = document.getElementById("loginCard");
+  const userCard = document.getElementById("userCard");
+  const createGroupCard = document.getElementById("createGroupCard");
+  const groupsCard = document.getElementById("groupsCard");
+  const groupDetailsCard = document.getElementById("groupDetailsCard");
 
-window.login=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>toast(e.message));
+  // Auth
+  document.getElementById("loginBtn").onclick = () =>
+    signInWithPopup(auth, provider);
 
-onAuthStateChanged(auth,u=>{
- if(!u)return;
- currentUser=u;
- loginCard.classList.add("hidden");
- userCard.classList.remove("hidden");
- groupCard.classList.remove("hidden");
- groupsCard.classList.remove("hidden");
- userName.innerText=u.displayName;
- loadGroups();
-});
+  document.getElementById("logoutBtn").onclick = () =>
+    signOut(auth);
 
-window.createGroup=async()=>{
- const name=groupName.value.trim();
- if(!name)return toast("Enter group name");
- await addDoc(collection(db,"groups"),{
-  name,members:[currentUser.uid],payments:[],settlements:[]
- });
- groupName.value="";
- toast("Group created");
-};
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      loginCard.classList.remove("hidden");
+      userCard.classList.add("hidden");
+      createGroupCard.classList.add("hidden");
+      groupsCard.classList.add("hidden");
+      return;
+    }
 
-window.joinGroup=async()=>{
- const id=joinCode.value.trim();
- if(!id)return toast("Enter invite code");
- const ref=doc(db,"groups",id);
- const snap=await getDoc(ref);
- if(!snap.exists())return toast("Invalid code");
- await updateDoc(ref,{members:arrayUnion(currentUser.uid)});
- toast("Joined group");
-};
+    currentUser = user;
+    document.getElementById("userName").innerText = "Hi, " + user.displayName;
 
-function loadGroups(){
- const q=query(collection(db,"groups"),where("members","array-contains",currentUser.uid));
- onSnapshot(q,snap=>{
-  groups.innerHTML="";
-  snap.forEach(d=>{
-   const div=document.createElement("div");
-   div.className="group";
-   div.innerHTML=`<b>${d.data().name}</b>
-   <button class="secondary" onclick="openGroup('${d.id}')">Open</button>`;
-   groups.appendChild(div);
+    loginCard.classList.add("hidden");
+    userCard.classList.remove("hidden");
+    createGroupCard.classList.remove("hidden");
+    groupsCard.classList.remove("hidden");
+
+    loadGroups();
   });
- });
-}
 
-window.openGroup=(id)=>{
- if(groupUnsub)groupUnsub();
- const ref=doc(db,"groups",id);
- groupUnsub=onSnapshot(ref,snap=>{
-  if(!snap.exists())return;
-  currentGroup={id:snap.id,...snap.data()};
-  groupDetailsCard.classList.remove("hidden");
-  currentGroupName.innerText=currentGroup.name;
-  inviteCode.value=snap.id;
-  renderPayments();
-  renderBalances();
-  renderHistory();
- });
-};
+  // Create group
+  document.getElementById("createGroupBtn").onclick = async () => {
+    const name = document.getElementById("groupName").value.trim();
+    if (!name) return alert("Enter group name");
 
-window.copyInvite=()=>{
- navigator.clipboard.writeText(inviteCode.value);
- toast("Invite link copied");
-};
-
-window.addPayment=async()=>{
- const p=payerName.value.trim(),u=upiId.value.trim(),a=parseFloat(amount.value);
- if(!p||!u||isNaN(a))return toast("Fill all required fields");
- await updateDoc(doc(db,"groups",currentGroup.id),{
-  payments:arrayUnion({payer:p,upi:u,amount:a,note:note.value})
- });
- payerName.value=upiId.value=amount.value=note.value="";
-};
-
-function renderPayments(){
- paymentList.innerHTML="";
- currentGroup.payments.forEach(p=>{
-  paymentList.innerHTML+=`<div class="payment">${p.payer} paid ₹${p.amount} ${p.note||""}</div>`;
- });
-}
-
-function renderBalances(){
- balances.innerHTML="";
- const t={};
- currentGroup.payments.forEach(p=>{
-  if(!t[p.payer])t[p.payer]={amt:0,upi:p.upi};
-  t[p.payer].amt+=p.amount;
- });
- const names=Object.keys(t);
- const share=names.reduce((s,n)=>s+t[n].amt,0)/names.length;
- let debt=[],cred=[];
- names.forEach(n=>{
-  const d=t[n].amt-share;
-  if(d<0)debt.push({n,amt:-d});
-  if(d>0)cred.push({n,amt:d,upi:t[n].upi});
- });
- let i=0,j=0;
- while(i<debt.length&&j<cred.length){
-  const pay=Math.min(debt[i].amt,cred[j].amt);
-  balances.innerHTML+=`
-  <div class="settle">
-   ${debt[i].n} → ${cred[j].n} ₹${pay.toFixed(2)}
-   <button class="pay" onclick="pay('${cred[j].upi}',${pay},'${debt[i].n}','${cred[j].n}')">Pay</button>
-  </div>`;
-  debt[i].amt-=pay;cred[j].amt-=pay;
-  if(debt[i].amt<=0)i++;if(cred[j].amt<=0)j++;
- }
-}
-
-window.pay=async(upi,amt,from,to)=>{
- window.location.href=`upi://pay?pa=${upi}&am=${amt}&cu=INR`;
- await updateDoc(doc(db,"groups",currentGroup.id),{
-  settlements:arrayUnion({from,to,amt,status:"Paid"})
- });
-};
-
-function renderHistory(){
- history.innerHTML="";
- (currentGroup.settlements||[]).forEach(s=>{
-  history.innerHTML+=`<div class="small">${s.from} paid ${s.to} ₹${s.amt}</div>`;
- });
-}
-</script>
-
-</body>
-</html>
-      div.innerHTML=`
-        <strong>${g.name}</strong>
-        <div style="margin-top:5px;">
-          <button onclick="openGroup('${d.id}')" class="secondary">Open</button>
-        </div>
-      `;
-      groups.appendChild(div);
+    await addDoc(collection(db, "groups"), {
+      name,
+      members: [currentUser.uid]
     });
-  });
-}
 
-/* OPEN GROUP */
-window.openGroup = async (id) => {
-  const ref = doc(db,"groups",id);
-  const snap = await getDoc(ref);
-  if(!snap.exists()) return;
-  currentGroup = {id, ...snap.data()};
-  document.getElementById("groupDetailsCard").classList.remove("hidden");
-  document.getElementById("currentGroupName").innerText = currentGroup.name;
-  renderPayments();
-  renderBalances();
-};
+    document.getElementById("groupName").value = "";
+  };
 
-/* ADD PAYMENT */
-window.addPayment = async () => {
-  const payer = document.getElementById("payerName").value.trim();
-  const upi = document.getElementById("upiId").value.trim();
-  const amount = parseFloat(document.getElementById("amount").value);
-  const note = document.getElementById("note").value.trim();
+  // Load groups
+  function loadGroups() {
+    const q = query(
+      collection(db, "groups"),
+      where("members", "array-contains", currentUser.uid)
+    );
 
-  if(!payer || !upi || isNaN(amount)){ toast("Enter name, UPI, and valid amount"); return; }
+    onSnapshot(q, snap => {
+      const list = document.getElementById("groupsList");
+      list.innerHTML = "";
 
-  const ref = doc(db,"groups",currentGroup.id);
-  await updateDoc(ref, {payments: arrayUnion({payer,upi,amount,note})});
-
-  document.getElementById("payerName").value="";
-  document.getElementById("upiId").value="";
-  document.getElementById("amount").value="";
-  document.getElementById("note").value="";
-
-  toast("Payment added");
-};
-
-/* RENDER PAYMENTS */
-function renderPayments(){
-  const list = document.getElementById("paymentList");
-  list.innerHTML="";
-  if(!currentGroup.payments) return;
-  currentGroup.payments.forEach((p,i)=>{
-    const div = document.createElement("div");
-    div.className="payment-item";
-    div.innerHTML=`
-      <span>${p.payer} paid ₹${p.amount} ${p.note? '- '+p.note:''}</span>
-      <button class="secondary" onclick="upiPay('${p.upi}','${p.amount}')">Pay Now</button>
-    `;
-    list.appendChild(div);
-  });
-}
-
-/* CALCULATE BALANCES & SMART SETTLEMENT */
-function renderBalances(){
-  const balancesDiv = document.getElementById("balances");
-  balancesDiv.innerHTML="";
-
-  if(!currentGroup.payments) return;
-
-  const totals = {};
-  currentGroup.payments.forEach(p=>{
-    if(!totals[p.payer]) totals[p.payer]={total:0,upi:p.upi};
-    totals[p.payer].total += p.amount;
-    totals[p.payer].upi = p.upi;
-  });
-
-  const members = Object.keys(totals);
-  const groupTotal = members.reduce((sum,m)=>sum+totals[m].total,0);
-  const perPerson = groupTotal / members.length;
-
-  const netBalances = {};
-  members.forEach(m=> netBalances[m] = totals[m].total - perPerson);
-
-  const debtors = [], creditors=[];
-  for(let m in netBalances){
-    if(netBalances[m]<0) debtors.push({name:m,amt:-netBalances[m],upi:totals[m].upi});
-    else if(netBalances[m]>0) creditors.push({name:m,amt:netBalances[m],upi:totals[m].upi});
+      snap.forEach(docu => {
+        const g = docu.data();
+        const div = document.createElement("div");
+        div.className = "group";
+        div.innerHTML = `
+          <span>${g.name}</span>
+          <button onclick="openGroup('${docu.id}')">Open</button>
+        `;
+        list.appendChild(div);
+      });
+    });
   }
 
-  const settlements = [];
-  let i=0,j=0;
-  while(i<debtors.length && j<creditors.length){
-    const d = debtors[i], c = creditors[j];
-    const payAmt = Math.min(d.amt,c.amt);
-    settlements.push({from:d.name,to:c.name,amount:payAmt,upi:c.upi});
-    d.amt -= payAmt; c.amt -= payAmt;
-    if(d.amt<=0) i++; if(c.amt<=0) j++;
-  }
+  // 🔥 FIXED open group
+  window.openGroup = (id) => {
+    if (groupUnsubscribe) groupUnsubscribe();
 
-  settlements.forEach(s=>{
-    const div = document.createElement("div");
-    div.innerHTML=`${s.from} → ${s.to}: ₹${s.amount} <button onclick="upiPay('${s.upi}','${s.amount}')">Pay Now</button>`;
-    balancesDiv.appendChild(div);
+    const ref = doc(db, "groups", id);
+    groupUnsubscribe = onSnapshot(ref, snap => {
+      currentGroup = { id: snap.id, ...snap.data() };
+      document.getElementById("currentGroupName").innerText = currentGroup.name;
+      groupDetailsCard.classList.remove("hidden");
+    });
+  };
+
+  // Add payment
+  document.getElementById("addPaymentBtn").onclick = async () => {
+    if (!currentGroup) return;
+
+    const desc = document.getElementById("paymentDesc").value;
+    const amt = Number(document.getElementById("paymentAmount").value);
+
+    if (!desc || !amt) return alert("Enter details");
+
+    await addDoc(collection(db, "groups", currentGroup.id, "payments"), {
+      desc,
+      amount: amt,
+      paidBy: currentUser.displayName,
+      uid: currentUser.uid,
+      time: Date.now()
+    });
+
+    document.getElementById("paymentDesc").value = "";
+    document.getElementById("paymentAmount").value = "";
+  };
+
+  // Payments listener
+  onSnapshot(collection(db, "groups"), () => {
+    if (!currentGroup) return;
+
+    onSnapshot(
+      collection(db, "groups", currentGroup.id, "payments"),
+      snap => {
+        const list = document.getElementById("paymentsList");
+        list.innerHTML = "";
+        snap.forEach(p => {
+          const d = p.data();
+          list.innerHTML += `<div>${d.paidBy}: ₹${d.amount} (${d.desc})</div>`;
+        });
+      }
+    );
   });
-}
-
-/* UPI PAY LINK */
-function upiPay(upi,amount){
-  const link = `upi://pay?pa=${upi}&pn=Creditor&am=${amount}&cu=INR`;
-  toast(`UPI link: ${link} (open in UPI app)`);
-}
-
-/* LIVE UPDATES */
-onSnapshot(collection(db,"groups"), snap=>{
-  if(currentGroup) openGroup(currentGroup.id);
-});
 
 </script>
 
 </body>
 </html>
+
