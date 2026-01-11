@@ -4,147 +4,241 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Easy Splitter</title>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
-body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont;background:#f3f4f6}
-header{background:linear-gradient(135deg,#4f46e5,#6366f1);color:white;padding:18px;text-align:center}
-header p{font-size:14px;opacity:.9}
+body{margin:0;font-family:system-ui;background:#f4f6fb}
+header{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;padding:18px;text-align:center}
 .container{padding:16px}
-.card{background:white;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 15px rgba(0,0,0,.06)}
-input,button{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:1px solid #d1d5db;font-size:15px}
-button{background:#4f46e5;color:white;border:none;font-weight:600}
-button.secondary{background:#22c55e}
-button.danger{background:#ef4444}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+input,button{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:1px solid #d1d5db}
+button{background:#4f46e5;color:#fff;border:none;font-weight:600}
+.secondary{background:#22c55e}
+.pay{background:#0ea5e9}
+.gray{background:#6b7280}
 .hidden{display:none}
 .group{border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px}
+.payment{border-bottom:1px solid #e5e7eb;padding:6px 0}
+.settle{border-bottom:1px dashed #e5e7eb;padding:8px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:14px 18px;border-radius:10px;display:none;z-index:999}
 .small{font-size:13px;color:#6b7280}
-.amount-pos{color:#16a34a;font-weight:600}
-.amount-neg{color:#dc2626;font-weight:600}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:white;padding:14px 18px;border-radius:10px;display:none;z-index:999}
-.payment-list{margin-top:10px;margin-bottom:10px;}
-.payment-item{border-bottom:1px solid #e5e7eb;padding:6px 0;display:flex;justify-content:space-between;align-items:center;}
-.payment-item span{flex:1;}
 </style>
 </head>
+
 <body>
 
 <header>
-  <h2><i class="fa-solid fa-coins"></i> Easy Splitter</h2>
-  <p>Split • Track • Settle via UPI</p>
+<h2><i class="fa-solid fa-coins"></i> Easy Splitter</h2>
+<p class="small">Split • Track • Settle via UPI</p>
 </header>
 
 <div class="container">
 
-<!-- LOGIN -->
 <div class="card" id="loginCard">
-  <h3>Welcome 👋</h3>
-  <p class="small">Login to manage shared expenses easily.</p>
-  <button onclick="login()">
-    <i class="fa-brands fa-google"></i> Continue with Google
-  </button>
+<h3>Welcome 👋</h3>
+<button onclick="login()"><i class="fa-brands fa-google"></i> Continue with Google</button>
 </div>
 
-<!-- USER -->
 <div class="card hidden" id="userCard">
-  <h3>Hello, <span id="userName"></span></h3>
+<h3>Hello, <span id="userName"></span></h3>
 </div>
 
-<!-- CREATE GROUP -->
 <div class="card hidden" id="groupCard">
-  <h3>Create Group</h3>
-  <input id="groupName" placeholder="Trip / Flat / Party">
-  <button onclick="createGroup()">Create Group</button>
+<h3>Create Group</h3>
+<input id="groupName" placeholder="Trip / Flat / Party">
+<button onclick="createGroup()">Create Group</button>
+
+<h4 style="margin-top:16px">Join Group</h4>
+<input id="joinCode" placeholder="Paste invite code">
+<button class="secondary" onclick="joinGroup()">Join</button>
 </div>
 
-<!-- GROUP LIST -->
 <div class="card hidden" id="groupsCard">
-  <h3>Your Groups</h3>
-  <div id="groups"></div>
+<h3>Your Groups</h3>
+<div id="groups"></div>
 </div>
 
-<!-- GROUP DETAILS -->
 <div class="card hidden" id="groupDetailsCard">
-  <h3 id="currentGroupName"></h3>
-  <p class="small">Add payments (multiple allowed, with notes)</p>
-  <input id="payerName" placeholder="Your Name">
-  <input id="upiId" placeholder="Your UPI ID (example@upi)">
-  <input id="amount" placeholder="Amount Paid">
-  <input id="note" placeholder="Note (optional)">
-  <button onclick="addPayment()">Add Payment</button>
+<h3 id="currentGroupName"></h3>
 
-  <div class="payment-list" id="paymentList"></div>
+<p class="small">Invite Code:</p>
+<input id="inviteCode" readonly>
+<button class="gray" onclick="copyInvite()">Copy Invite Link</button>
 
-  <h4>Balances</h4>
-  <div id="balances"></div>
+<hr>
+
+<input id="payerName" placeholder="Your name">
+<input id="upiId" placeholder="Your UPI ID">
+<input id="amount" placeholder="Amount paid">
+<input id="note" placeholder="Note (optional)">
+<button onclick="addPayment()">Add Payment</button>
+
+<h4>Payments</h4>
+<div id="paymentList"></div>
+
+<h4>Settlement</h4>
+<div id="balances"></div>
+
+<h4>Settlement History</h4>
+<div id="history"></div>
 </div>
 
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, onSnapshot, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, getDoc, onSnapshot, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* FIREBASE CONFIG */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
-    apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
-    authDomain: "easysplitter-c5a4c.firebaseapp.com",
-    projectId: "easysplitter-c5a4c",
-    storageBucket: "easysplitter-c5a4c.firebasestorage.app",
-    messagingSenderId: "582888920406",
-    appId: "1:582888920406:web:1d80e0b7b952f97ce9b2f7"
-  };
+ apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
+ authDomain: "easysplitter-c5a4c.firebaseapp.com",
+ projectId: "easysplitter-c5a4c",
+ storageBucket: "easysplitter-c5a4c.firebasestorage.app",
+ messagingSenderId: "582888920406",
+ appId: "1:582888920406:web:1d80e0b7b952f97ce9b2f7"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* TOAST */
+let currentUser=null,currentGroup=null,groupUnsub=null;
+
 function toast(msg){const t=document.getElementById("toast");t.innerText=msg;t.style.display="block";setTimeout(()=>t.style.display="none",3000);}
 
-/* LOGIN */
-window.login=()=>{
-  const provider = new GoogleAuthProvider();
-  signInWithPopup(auth, provider).catch(e=>toast(e.message));
-};
+window.login=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>toast(e.message));
 
-/* AUTH STATE */
-let currentUser;
-onAuthStateChanged(auth, async user => {
-  if(!user) return;
-  currentUser = user;
-
-  loginCard.classList.add("hidden");
-  userCard.classList.remove("hidden");
-  groupCard.classList.remove("hidden");
-  groupsCard.classList.remove("hidden");
-
-  userName.innerText = user.displayName;
-
-  loadGroups();
+onAuthStateChanged(auth,u=>{
+ if(!u)return;
+ currentUser=u;
+ loginCard.classList.add("hidden");
+ userCard.classList.remove("hidden");
+ groupCard.classList.remove("hidden");
+ groupsCard.classList.remove("hidden");
+ userName.innerText=u.displayName;
+ loadGroups();
 });
 
-/* CREATE GROUP */
-window.createGroup = async () => {
-  const name = groupName.value.trim();
-  if(!name){ toast("Group name required"); return; }
-  await addDoc(collection(db,"groups"),{name,members:[currentUser.uid],created:Date.now(), payments:[]});
-  groupName.value="";
-  toast("Group created");
+window.createGroup=async()=>{
+ const name=groupName.value.trim();
+ if(!name)return toast("Enter group name");
+ await addDoc(collection(db,"groups"),{
+  name,members:[currentUser.uid],payments:[],settlements:[]
+ });
+ groupName.value="";
+ toast("Group created");
 };
 
-/* LOAD GROUPS */
+window.joinGroup=async()=>{
+ const id=joinCode.value.trim();
+ if(!id)return toast("Enter invite code");
+ const ref=doc(db,"groups",id);
+ const snap=await getDoc(ref);
+ if(!snap.exists())return toast("Invalid code");
+ await updateDoc(ref,{members:arrayUnion(currentUser.uid)});
+ toast("Joined group");
+};
+
 function loadGroups(){
-  const q = query(collection(db,"groups"), where("members","array-contains",currentUser.uid));
-  onSnapshot(q, snap => {
-    groups.innerHTML="";
-    snap.forEach(d => {
-      const g = d.data();
-      const div = document.createElement("div");
-      div.className="group";
+ const q=query(collection(db,"groups"),where("members","array-contains",currentUser.uid));
+ onSnapshot(q,snap=>{
+  groups.innerHTML="";
+  snap.forEach(d=>{
+   const div=document.createElement("div");
+   div.className="group";
+   div.innerHTML=`<b>${d.data().name}</b>
+   <button class="secondary" onclick="openGroup('${d.id}')">Open</button>`;
+   groups.appendChild(div);
+  });
+ });
+}
+
+window.openGroup=(id)=>{
+ if(groupUnsub)groupUnsub();
+ const ref=doc(db,"groups",id);
+ groupUnsub=onSnapshot(ref,snap=>{
+  if(!snap.exists())return;
+  currentGroup={id:snap.id,...snap.data()};
+  groupDetailsCard.classList.remove("hidden");
+  currentGroupName.innerText=currentGroup.name;
+  inviteCode.value=snap.id;
+  renderPayments();
+  renderBalances();
+  renderHistory();
+ });
+};
+
+window.copyInvite=()=>{
+ navigator.clipboard.writeText(inviteCode.value);
+ toast("Invite link copied");
+};
+
+window.addPayment=async()=>{
+ const p=payerName.value.trim(),u=upiId.value.trim(),a=parseFloat(amount.value);
+ if(!p||!u||isNaN(a))return toast("Fill all required fields");
+ await updateDoc(doc(db,"groups",currentGroup.id),{
+  payments:arrayUnion({payer:p,upi:u,amount:a,note:note.value})
+ });
+ payerName.value=upiId.value=amount.value=note.value="";
+};
+
+function renderPayments(){
+ paymentList.innerHTML="";
+ currentGroup.payments.forEach(p=>{
+  paymentList.innerHTML+=`<div class="payment">${p.payer} paid ₹${p.amount} ${p.note||""}</div>`;
+ });
+}
+
+function renderBalances(){
+ balances.innerHTML="";
+ const t={};
+ currentGroup.payments.forEach(p=>{
+  if(!t[p.payer])t[p.payer]={amt:0,upi:p.upi};
+  t[p.payer].amt+=p.amount;
+ });
+ const names=Object.keys(t);
+ const share=names.reduce((s,n)=>s+t[n].amt,0)/names.length;
+ let debt=[],cred=[];
+ names.forEach(n=>{
+  const d=t[n].amt-share;
+  if(d<0)debt.push({n,amt:-d});
+  if(d>0)cred.push({n,amt:d,upi:t[n].upi});
+ });
+ let i=0,j=0;
+ while(i<debt.length&&j<cred.length){
+  const pay=Math.min(debt[i].amt,cred[j].amt);
+  balances.innerHTML+=`
+  <div class="settle">
+   ${debt[i].n} → ${cred[j].n} ₹${pay.toFixed(2)}
+   <button class="pay" onclick="pay('${cred[j].upi}',${pay},'${debt[i].n}','${cred[j].n}')">Pay</button>
+  </div>`;
+  debt[i].amt-=pay;cred[j].amt-=pay;
+  if(debt[i].amt<=0)i++;if(cred[j].amt<=0)j++;
+ }
+}
+
+window.pay=async(upi,amt,from,to)=>{
+ window.location.href=`upi://pay?pa=${upi}&am=${amt}&cu=INR`;
+ await updateDoc(doc(db,"groups",currentGroup.id),{
+  settlements:arrayUnion({from,to,amt,status:"Paid"})
+ });
+};
+
+function renderHistory(){
+ history.innerHTML="";
+ (currentGroup.settlements||[]).forEach(s=>{
+  history.innerHTML+=`<div class="small">${s.from} paid ${s.to} ₹${s.amt}</div>`;
+ });
+}
+</script>
+
+</body>
+</html>
       div.innerHTML=`
         <strong>${g.name}</strong>
         <div style="margin-top:5px;">
