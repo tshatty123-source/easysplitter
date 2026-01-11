@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Splitter</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont;background:#f3f4f6}
+header{background:linear-gradient(135deg,#4f46e5,#6366f1);color:white;padding:18px;text-align:center}
+header p{font-size:14px;opacity:.9}
+.container{padding:16px}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 15px rgba(0,0,0,.06)}
+input,button{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:1px solid #d1d5db;font-size:15px}
+button{background:#4f46e5;color:white;border:none;font-weight:600}
+button.secondary{background:#22c55e}
+button.danger{background:#ef4444}
+.hidden{display:none}
+.group{border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px}
+.small{font-size:13px;color:#6b7280}
+.amount-pos{color:#16a34a;font-weight:600}
+.amount-neg{color:#dc2626;font-weight:600}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:white;padding:14px 18px;border-radius:10px;display:none;z-index:999}
+.payment-list{margin-top:10px;margin-bottom:10px;}
+.payment-item{border-bottom:1px solid #e5e7eb;padding:6px 0;display:flex;justify-content:space-between;align-items:center;}
+.payment-item span{flex:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <h2><i class="fa-solid fa-coins"></i> Easy Splitter</h2>
+  <p>Split • Track • Settle via UPI</p>
+</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+  <h3>Welcome 👋</h3>
+  <p class="small">Login to manage shared expenses easily.</p>
+  <button onclick="login()">
+    <i class="fa-brands fa-google"></i> Continue with Google
+  </button>
+</div>
+
+<!-- USER -->
+<div class="card hidden" id="userCard">
+  <h3>Hello, <span id="userName"></span></h3>
+</div>
+
+<!-- CREATE GROUP -->
+<div class="card hidden" id="groupCard">
+  <h3>Create Group</h3>
+  <input id="groupName" placeholder="Trip / Flat / Party">
+  <button onclick="createGroup()">Create Group</button>
+</div>
+
+<!-- GROUP LIST -->
+<div class="card hidden" id="groupsCard">
+  <h3>Your Groups</h3>
+  <div id="groups"></div>
+</div>
+
+<!-- GROUP DETAILS -->
+<div class="card hidden" id="groupDetailsCard">
+  <h3 id="currentGroupName"></h3>
+  <p class="small">Add payments (multiple allowed, with notes)</p>
+  <input id="payerName" placeholder="Your Name">
+  <input id="upiId" placeholder="Your UPI ID (example@upi)">
+  <input id="amount" placeholder="Amount Paid">
+  <input id="note" placeholder="Note (optional)">
+  <button onclick="addPayment()">Add Payment</button>
+
+  <div class="payment-list" id="paymentList"></div>
+
+  <h4>Balances</h4>
+  <div id="balances"></div>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, onSnapshot, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+/* FIREBASE CONFIG */
+const firebaseConfig = {
+  YOUR_FIREBASE_CONFIG_HERE
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* TOAST */
+function toast(msg){const t=document.getElementById("toast");t.innerText=msg;t.style.display="block";setTimeout(()=>t.style.display="none",3000);}
+
+/* LOGIN */
+window.login=()=>{
+  const provider = new GoogleAuthProvider();
+  signInWithPopup(auth, provider).catch(e=>toast(e.message));
+};
+
+/* AUTH STATE */
+let currentUser;
+onAuthStateChanged(auth, async user => {
+  if(!user) return;
+  currentUser = user;
+
+  loginCard.classList.add("hidden");
+  userCard.classList.remove("hidden");
+  groupCard.classList.remove("hidden");
+  groupsCard.classList.remove("hidden");
+
+  userName.innerText = user.displayName;
+
+  loadGroups();
+});
+
+/* CREATE GROUP */
+window.createGroup = async () => {
+  const name = groupName.value.trim();
+  if(!name){ toast("Group name required"); return; }
+  await addDoc(collection(db,"groups"),{name,members:[currentUser.uid],created:Date.now(), payments:[]});
+  groupName.value="";
+  toast("Group created");
+};
+
+/* LOAD GROUPS */
+function loadGroups(){
+  const q = query(collection(db,"groups"), where("members","array-contains",currentUser.uid));
+  onSnapshot(q, snap => {
+    groups.innerHTML="";
+    snap.forEach(d => {
+      const g = d.data();
+      const div = document.createElement("div");
+      div.className="group";
+      div.innerHTML=`
+        <strong>${g.name}</strong>
+        <div style="margin-top:5px;">
+          <button onclick="openGroup('${d.id}')" class="secondary">Open</button>
+        </div>
+      `;
+      groups.appendChild(div);
+    });
+  });
+}
+
+/* OPEN GROUP */
+window.openGroup = async (id) => {
+  const ref = doc(db,"groups",id);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  currentGroup = {id, ...snap.data()};
+  document.getElementById("groupDetailsCard").classList.remove("hidden");
+  document.getElementById("currentGroupName").innerText = currentGroup.name;
+  renderPayments();
+  renderBalances();
+};
+
+/* ADD PAYMENT */
+window.addPayment = async () => {
+  const payer = document.getElementById("payerName").value.trim();
+  const upi = document.getElementById("upiId").value.trim();
+  const amount = parseFloat(document.getElementById("amount").value);
+  const note = document.getElementById("note").value.trim();
+
+  if(!payer || !upi || isNaN(amount)){ toast("Enter name, UPI, and valid amount"); return; }
+
+  const ref = doc(db,"groups",currentGroup.id);
+  await updateDoc(ref, {payments: arrayUnion({payer,upi,amount,note})});
+
+  document.getElementById("payerName").value="";
+  document.getElementById("upiId").value="";
+  document.getElementById("amount").value="";
+  document.getElementById("note").value="";
+
+  toast("Payment added");
+};
+
+/* RENDER PAYMENTS */
+function renderPayments(){
+  const list = document.getElementById("paymentList");
+  list.innerHTML="";
+  if(!currentGroup.payments) return;
+  currentGroup.payments.forEach((p,i)=>{
+    const div = document.createElement("div");
+    div.className="payment-item";
+    div.innerHTML=`
+      <span>${p.payer} paid ₹${p.amount} ${p.note? '- '+p.note:''}</span>
+      <button class="secondary" onclick="upiPay('${p.upi}','${p.amount}')">Pay Now</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+/* CALCULATE BALANCES & SMART SETTLEMENT */
+function renderBalances(){
+  const balancesDiv = document.getElementById("balances");
+  balancesDiv.innerHTML="";
+
+  if(!currentGroup.payments) return;
+
+  const totals = {};
+  currentGroup.payments.forEach(p=>{
+    if(!totals[p.payer]) totals[p.payer]={total:0,upi:p.upi};
+    totals[p.payer].total += p.amount;
+    totals[p.payer].upi = p.upi;
+  });
+
+  const members = Object.keys(totals);
+  const groupTotal = members.reduce((sum,m)=>sum+totals[m].total,0);
+  const perPerson = groupTotal / members.length;
+
+  const netBalances = {};
+  members.forEach(m=> netBalances[m] = totals[m].total - perPerson);
+
+  const debtors = [], creditors=[];
+  for(let m in netBalances){
+    if(netBalances[m]<0) debtors.push({name:m,amt:-netBalances[m],upi:totals[m].upi});
+    else if(netBalances[m]>0) creditors.push({name:m,amt:netBalances[m],upi:totals[m].upi});
+  }
+
+  const settlements = [];
+  let i=0,j=0;
+  while(i<debtors.length && j<creditors.length){
+    const d = debtors[i], c = creditors[j];
+    const payAmt = Math.min(d.amt,c.amt);
+    settlements.push({from:d.name,to:c.name,amount:payAmt,upi:c.upi});
+    d.amt -= payAmt; c.amt -= payAmt;
+    if(d.amt<=0) i++; if(c.amt<=0) j++;
+  }
+
+  settlements.forEach(s=>{
+    const div = document.createElement("div");
+    div.innerHTML=`${s.from} → ${s.to}: ₹${s.amount} <button onclick="upiPay('${s.upi}','${s.amount}')">Pay Now</button>`;
+    balancesDiv.appendChild(div);
+  });
+}
+
+/* UPI PAY LINK */
+function upiPay(upi,amount){
+  const link = `upi://pay?pa=${upi}&pn=Creditor&am=${amount}&cu=INR`;
+  toast(`UPI link: ${link} (open in UPI app)`);
+}
+
+/* LIVE UPDATES */
+onSnapshot(collection(db,"groups"), snap=>{
+  if(currentGroup) openGroup(currentGroup.id);
+});
+
+</script>
+
+</body>
+</html>
