@@ -100,8 +100,8 @@ input:focus{outline:none;border-color:#4f46e5;}
 
 <h4>Invite Link</h4>
 <div id="inviteLinkDiv" class="item"></div>
-<a id="whatsappShare" class="share-btn hidden" target="_blank"><span class="material-icons">share</span> WhatsApp</a>
-<a id="instagramShare" class="share-btn hidden" target="_blank"><span class="material-icons">share</span> Instagram</a>
+<a id="whatsappShare" class="share-btn hidden"><span class="material-icons">share</span> WhatsApp</a>
+<a id="instagramShare" class="share-btn hidden"><span class="material-icons">share</span> Instagram</a>
 
 <h4>Payments</h4>
 <div id="payments"></div>
@@ -145,6 +145,168 @@ function showAlert(msg,type='success'){
 function showPage(id){
     ['page-login','page-dashboard','page-create-group','page-groups','page-group','page-join-group'].forEach(p=>document.getElementById(p).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
+}
+function backToDashboard(){showPage('page-dashboard');}
+function showCreateGroup(){showPage('page-create-group');}
+function showGroups(){showPage('page-groups');}
+function showJoinGroup(){showPage('page-join-group');}
+
+// AUTH
+document.getElementById('loginBtn').onclick=()=>signInWithPopup(auth,new GoogleAuthProvider());
+document.getElementById('logoutBtn').onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,async user=>{
+    if(!user){showPage('page-login'); return;}
+    currentUser=user;
+    document.getElementById('userName').innerText=user.displayName;
+    showPage('page-dashboard');
+
+    await setDoc(doc(db,'users',user.uid),{name:user.displayName,email:user.email},{merge:true});
+    loadGroups();
+});
+
+// SAVE UPI
+document.getElementById('saveUpiBtn').onclick=async()=>{
+    const upi=document.getElementById('upiInput').value.trim();
+    if(!upi)return showAlert('Enter valid UPI','error');
+    await updateDoc(doc(db,'users',currentUser.uid),{upi});
+    showAlert('UPI saved');
+}
+
+// CREATE GROUP
+document.getElementById('createGroupBtn').onclick = async () => {
+    const name = document.getElementById('groupName').value.trim();
+    if (!name) return showAlert('Enter group name', 'error');
+    try {
+        const newGroup = await addDoc(collection(db, 'groups'), {name, members:[currentUser.uid], createdAt:Date.now()});
+        document.getElementById('groupName').value='';
+        showAlert('Group created successfully!');
+        openGroup(newGroup.id,name);
+    } catch (err) {
+        showAlert('Error creating group','error');
+        console.error(err);
+    }
+};
+
+// JOIN GROUP
+document.getElementById('joinGroupBtn').onclick = async () => {
+    let input = document.getElementById('joinGroupCode').value.trim();
+    if(!input) return showAlert('Enter group ID or link','error');
+    if(input.includes('group=')) input = input.split('group=')[1];
+    try{
+        const groupRef = doc(db,'groups',input);
+        const gSnap = await getDoc(groupRef);
+        if(!gSnap.exists()) return showAlert('Group not found','error');
+        const data = gSnap.data();
+        if(!data.members.includes(currentUser.uid)) await updateDoc(groupRef,{members: arrayUnion(currentUser.uid)});
+        showAlert(`Joined group "${data.name}" successfully!`);
+        openGroup(input,data.name);
+        document.getElementById('joinGroupCode').value='';
+    }catch(err){
+        showAlert('Error joining group','error');
+        console.error(err);
+    }
+};
+
+// LOAD GROUPS
+async function loadGroups(){
+    const q=query(collection(db,'groups'),where('members','array-contains',currentUser.uid));
+    onSnapshot(q,snap=>{
+        const groupsElem=document.getElementById('groups');
+        groupsElem.innerHTML='';
+        snap.forEach(docu=>{
+            const g=docu.data();
+            const div=document.createElement('div');
+            div.className='item';
+            div.innerHTML=`<span>${g.name}</span><button class="secondary" onclick="openGroup('${docu.id}','${g.name}')">Open</button>`;
+            groupsElem.appendChild(div);
+        });
+    });
+}
+
+// OPEN GROUP
+window.openGroup=async(id,name)=>{
+    activeGroupId=id;
+    activeGroupNameElem.innerText=name;
+    showPage('page-group');
+    const inviteLink=`${window.location.href}?group=${id}`;
+    const inviteDiv=document.getElementById('inviteLinkDiv');
+    inviteDiv.innerHTML=`Invite link: <input value="${inviteLink}" readonly style="width:100%;padding:6px;">`;
+    document.getElementById('whatsappShare').href=`https://wa.me/?text=Join my Easy Splitter group: ${encodeURIComponent(inviteLink)}`;
+    document.getElementById('whatsappShare').classList.remove('hidden');
+    document.getElementById('instagramShare').href=`https://www.instagram.com/?url=${encodeURIComponent(inviteLink)}`;
+    document.getElementById('instagramShare').classList.remove('hidden');
+    loadPayments();
+};
+
+// ADD PAYMENT
+document.getElementById('addPaymentBtn').onclick=async()=>{
+    const amt=Number(document.getElementById('amount').value);
+    if(amt<=0)return showAlert('Invalid amount','error');
+    await addDoc(collection(db,'groups',activeGroupId,'payments'),{
+        uid:currentUser.uid,
+        name:currentUser.displayName,
+        amount:amt,
+        time:Date.now(),
+        status:'pending'
+    });
+    document.getElementById('amount').value='';
+}
+
+// LOAD PAYMENTS & BALANCES + CONFIRM RECEIVED
+function loadPayments(){
+    const paymentsElem=document.getElementById('payments');
+    const balancesElem=document.getElementById('balances');
+    onSnapshot(collection(db,'groups',activeGroupId,'payments'),snap=>{
+        paymentsElem.innerHTML='';
+        balancesElem.innerHTML='';
+        let totals={};
+        snap.forEach(d=>{
+            const p=d.data();
+            totals[p.uid]=(totals[p.uid]||0)+p.amount;
+            let btn='';
+            if(p.uid!==currentUser.uid && p.status==='pending'){
+                btn=`<button class="pay" onclick="payNow('${p.uid}',${p.amount})"><span class="material-icons">payment</span> Pay Now</button>`;
+            } else if(p.uid===currentUser.uid && p.status==='pending'){
+                btn=`<button class="secondary" onclick="confirmReceived('${d.id}')"><span class="material-icons">check_circle</span> Mark Received</button>`;
+            }
+            paymentsElem.innerHTML+=`<div class="item ${p.status==='confirmed'?'receive':'owe'}">${p.name} paid ₹${p.amount} ${btn} <span class="small">${p.status==='confirmed'?'✅ Settled':'Pending'}</span></div>`;
+        });
+        getDoc(doc(db,'groups',activeGroupId)).then(gdoc=>{
+            const members=gdoc.data().members;
+            const totalSum=Object.values(totals).reduce((a,b)=>a+b,0);
+            const share=totalSum/members.length;
+            members.forEach(uid=>{
+                const bal=(totals[uid]||0)-share;
+                if(uid!==currentUser.uid && bal<0){
+                    balancesElem.innerHTML+=`<div class="item owe">You owe ₹${Math.abs(bal).toFixed(2)} <button class="pay" onclick="payNow('${uid}',${Math.abs(bal)})"><span class="material-icons">payment</span> Pay</button></div>`;
+                }
+                if(uid===currentUser.uid && bal>0){
+                    balancesElem.innerHTML+=`<div class="item receive">You should receive ₹${bal.toFixed(2)}</div>`;
+                }
+            });
+        });
+    });
+}
+
+// PAY NOW UPI
+window.payNow=async(to,amt)=>{
+    const userSnap=await getDoc(doc(db,'users',to));
+    const upi=userSnap.data()?.upi;
+    if(!upi)return showAlert('Recipient has not set UPI','error');
+    window.location.href=`upi://pay?pa=${upi}&pn=Easy Splitter&am=${amt}`;
+    showAlert('Payment requested. Ask recipient to confirm.');
+}
+
+// CONFIRM RECEIVED
+window.confirmReceived=async(paymentId)=>{
+    const payRef=doc(db,'groups',activeGroupId,'payments',paymentId);
+    await updateDoc(payRef,{status:'confirmed'});
+    showAlert('Payment marked as received');
+}
+</script>
+</body>
+</html>
 }
 function backToDashboard(){showPage('page-dashboard');}
 function showCreateGroup(){showPage('page-create-group');}
