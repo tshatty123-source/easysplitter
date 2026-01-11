@@ -6,7 +6,7 @@
 <title>Easy Splitter</title>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-body{margin:0;font-family:system-ui;background:#f4f6fb}
+body{margin:0;font-family:system-ui;background:#f4f6fb;}
 header{background:#4f46e5;color:#fff;padding:16px;text-align:center;}
 header h1{margin:0;font-size:22px;}
 header p{margin:4px 0 0;font-size:14px;opacity:.9;}
@@ -24,6 +24,7 @@ button.pay{background:#16a34a;}
 .success{background:#dcfce7;color:#166534;}
 .error{background:#fee2e2;color:#991b1b;}
 .item{padding:10px;border-radius:10px;background:#f1f5f9;margin-top:8px;}
+.nav-btn{padding:10px;border:none;background:#4f46e5;color:#fff;border-radius:10px;margin-top:8px;width:48%;font-size:14px;display:flex;justify-content:center;align-items:center;gap:6px;}
 .share-btn{display:inline-block;padding:6px 10px;border-radius:10px;margin-top:4px;background:#4f46e5;color:#fff;text-decoration:none;font-size:14px;}
 </style>
 </head>
@@ -37,41 +38,49 @@ button.pay{background:#16a34a;}
 
 <div id="alert"></div>
 
-<!-- LOGIN -->
-<div class="card" id="loginCard">
+<!-- LOGIN PAGE -->
+<div id="page-login" class="card">
 <p class="small">Sign in to start splitting expenses with friends.</p>
 <button id="loginBtn"><span class="material-icons">login</span> Sign in with Google</button>
 </div>
 
-<!-- USER -->
-<div class="card hidden" id="userCard">
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="hidden">
+<div class="card">
 <div class="row">
 <p id="userName"></p>
 <button class="secondary" id="logoutBtn">Logout</button>
 </div>
 <input id="upiInput" placeholder="Your UPI ID (e.g. name@upi)">
-<button id="saveUpiBtn" class="secondary">Save UPI</button>
+<button id="saveUpiBtn" class="secondary"><span class="material-icons">payment</span> Save UPI</button>
 </div>
 
-<!-- CREATE GROUP -->
-<div class="card hidden" id="createGroupCard">
+<div class="card">
+<h3>Dashboard</h3>
+<button class="nav-btn" onclick="showCreateGroup()"><span class="material-icons">group_add</span> Create Group</button>
+<button class="nav-btn" onclick="showGroups()"><span class="material-icons">groups</span> Your Groups</button>
+</div>
+
+<!-- CREATE GROUP LAYER -->
+<div id="page-create-group" class="card hidden">
 <h3>Create Group</h3>
 <input id="groupName" placeholder="Group name">
-<button id="createGroupBtn">Create</button>
+<button id="createGroupBtn"><span class="material-icons">add_circle</span> Create</button>
+<button class="secondary" onclick="backToDashboard()">Back</button>
 </div>
 
-<!-- GROUPS -->
-<div class="card hidden" id="groupsCard">
+<!-- GROUPS LAYER -->
+<div id="page-groups" class="card hidden">
 <h3>Your Groups</h3>
 <div id="groups"></div>
+<button class="secondary" onclick="backToDashboard()">Back</button>
 </div>
 
-<!-- ACTIVE GROUP -->
-<div class="card hidden" id="groupCard">
+<!-- ACTIVE GROUP PAGE -->
+<div id="page-group" class="card hidden">
 <h3 id="activeGroupName"></h3>
-
 <input id="amount" type="number" placeholder="Amount paid">
-<button id="addPaymentBtn">Add Payment</button>
+<button id="addPaymentBtn"><span class="material-icons">add</span> Add Payment</button>
 
 <h4>Invite Link</h4>
 <div id="inviteLinkDiv" class="item"></div>
@@ -84,13 +93,15 @@ button.pay{background:#16a34a;}
 <h4>Balances & Settlement</h4>
 <div id="balances"></div>
 
-<button class="secondary" onclick="closeGroup()">Close Group</button>
+<button class="secondary" onclick="backToDashboard()">Back</button>
+</div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, onSnapshot, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, onSnapshot, query, where, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
@@ -105,42 +116,37 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const alertBox = document.getElementById('alert');
-const loginCard = document.getElementById('loginCard');
-const userCard = document.getElementById('userCard');
-const createGroupCard = document.getElementById('createGroupCard');
-const groupsCard = document.getElementById('groupsCard');
-const groupCard = document.getElementById('groupCard');
-
 let currentUser=null;
 let activeGroupId=null;
 let activeGroupNameElem=document.getElementById('activeGroupName');
 
 function showAlert(msg,type='success'){
-    alertBox.innerHTML=`<div class="alert ${type}">${msg}</div>`;
-    setTimeout(()=>alertBox.innerHTML='',3000);
+    document.getElementById('alert').innerHTML=`<div class="alert ${type}">${msg}</div>`;
+    setTimeout(()=>document.getElementById('alert').innerHTML='',3000);
 }
+
+// PAGES
+function showPage(id){
+    ['page-login','page-dashboard','page-create-group','page-groups','page-group'].forEach(p=>document.getElementById(p).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+function backToDashboard(){showPage('page-dashboard');}
+
+// NAVIGATION BUTTONS
+function showCreateGroup(){showPage('page-create-group');}
+function showGroups(){showPage('page-groups');}
 
 // AUTH
 document.getElementById('loginBtn').onclick=()=>signInWithPopup(auth,new GoogleAuthProvider());
 document.getElementById('logoutBtn').onclick=()=>signOut(auth);
 
 onAuthStateChanged(auth,async user=>{
-    if(!user){
-        loginCard.classList.remove('hidden');
-        userCard.classList.add('hidden');
-        createGroupCard.classList.add('hidden');
-        groupsCard.classList.add('hidden');
-        return;
-    }
+    if(!user){showPage('page-login'); return;}
     currentUser=user;
-    loginCard.classList.add('hidden');
-    userCard.classList.remove('hidden');
-    createGroupCard.classList.remove('hidden');
-    groupsCard.classList.remove('hidden');
     document.getElementById('userName').innerText=user.displayName;
+    showPage('page-dashboard');
 
-    await updateDoc(doc(db,'users',user.uid),{name:user.displayName,email:user.email},{merge:true}).catch(async()=>await setDoc(doc(db,'users',user.uid),{name:user.displayName,email:user.email}));
+    await setDoc(doc(db,'users',user.uid),{name:user.displayName,email:user.email},{merge:true});
     loadGroups();
 });
 
@@ -160,6 +166,7 @@ document.getElementById('createGroupBtn').onclick=async()=>{
     document.getElementById('groupName').value='';
     showAlert('Group created');
     loadGroups();
+    showPage('page-dashboard');
 }
 
 // LOAD GROUPS
@@ -182,10 +189,7 @@ async function loadGroups(){
 window.openGroup=async(id,name)=>{
     activeGroupId=id;
     activeGroupNameElem.innerText=name;
-    groupCard.classList.remove('hidden');
-    document.getElementById('inviteLinkDiv').innerHTML='';
-    document.getElementById('whatsappShare').classList.add('hidden');
-    document.getElementById('instagramShare').classList.add('hidden');
+    showPage('page-group');
 
     const inviteLink=`${window.location.href}?group=${id}`;
     const inviteDiv=document.getElementById('inviteLinkDiv');
@@ -197,8 +201,6 @@ window.openGroup=async(id,name)=>{
 
     loadPayments();
 }
-
-window.closeGroup=()=>{activeGroupId=null;groupCard.classList.add('hidden');}
 
 // ADD PAYMENT
 document.getElementById('addPaymentBtn').onclick=async()=>{
@@ -224,7 +226,7 @@ function loadPayments(){
         let totals={};
         snap.forEach(d=>{
             const p=d.data();
-            paymentsElem.innerHTML+=`<div class="item">${p.name} paid ₹${p.amount} <button class="pay" onclick="payNow('${p.uid}',${p.amount})">Pay Now</button> ${p.status==='confirmed'?'<span class=\"small\">✅ Settled</span>':'<span class=\"small\">Pending</span>'}</div>`;
+            paymentsElem.innerHTML+=`<div class="item">${p.name} paid ₹${p.amount} <button class="pay" onclick="payNow('${p.uid}',${p.amount})">Pay Now</button> ${p.status==='confirmed'?'<span class="small">✅ Settled</span>':'<span class="small">Pending</span>'}</div>`;
             totals[p.uid]=(totals[p.uid]||0)+p.amount;
         });
         // calculate balances
@@ -245,14 +247,13 @@ function loadPayments(){
     });
 }
 
-// PAY NOW UPI + CONFIRMATION
+// PAY NOW UPI + SETTLEMENT
 window.payNow=async(to,amt)=>{
     const userSnap=await getDoc(doc(db,'users',to));
     const upi=userSnap.data()?.upi;
     if(!upi)return showAlert('Recipient has not set UPI','error');
     window.location.href=`upi://pay?pa=${upi}&pn=Easy Splitter&am=${amt}`;
 
-    // After payment, mark pending -> user manually confirms
     await addDoc(collection(db,'groups',activeGroupId,'settlements'),{
         from:currentUser.uid,
         to,
@@ -266,3 +267,4 @@ window.payNow=async(to,amt)=>{
 </script>
 </body>
 </html>
+
