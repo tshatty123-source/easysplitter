@@ -1,281 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Easy Splitter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Easy Splitter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-      background: #f4f6fb;
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      background: #4f46e5;
-      color: white;
-      padding: 16px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .container {
-      max-width: 420px;
-      margin: auto;
-      padding: 16px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 8px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-    }
-
-    button {
-      background: #4f46e5;
-      color: white;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button.secondary {
-      background: #e5e7eb;
-      color: #111;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .group {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-    }
-
-    .group button {
-      width: auto;
-      padding: 6px 12px;
-      font-size: 14px;
-    }
-
-    .small {
-      font-size: 14px;
-      color: #555;
-    }
-  </style>
+<style>
+body{margin:0;font-family:system-ui;background:#f4f6fb}
+header{background:#4f46e5;color:#fff;padding:16px;text-align:center;font-size:20px;font-weight:700}
+.container{max-width:430px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+h3,h4{margin:8px 0}
+.small{font-size:14px;color:#555}
+input,button{width:100%;padding:12px;margin-top:8px;border-radius:12px;border:1px solid #ddd;font-size:15px}
+button{background:#4f46e5;color:#fff;border:none;font-weight:600}
+button.secondary{background:#e5e7eb;color:#111}
+button.pay{background:#16a34a}
+button.warn{background:#f59e0b}
+.hidden{display:none}
+.notice{padding:10px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.success{background:#dcfce7;color:#166534}
+.error{background:#fee2e2;color:#991b1b}
+.group{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.group button{width:auto;padding:6px 12px}
+.balance{background:#f1f5f9;padding:10px;border-radius:10px;margin-top:8px}
+.status{font-size:13px;margin-top:6px}
+</style>
 </head>
 
 <body>
-
-<header>Easy Splitter</header>
+<header>💸 Easy Splitter</header>
 
 <div class="container">
+<div id="notice"></div>
 
-  <!-- LOGIN -->
-  <div class="card" id="loginCard">
-    <p class="small">Split expenses with friends in real-time.</p>
-    <button id="loginBtn">Sign in with Google</button>
-  </div>
+<div class="card" id="loginCard">
+  <p class="small">Split expenses, settle with trust.</p>
+  <button id="loginBtn">Sign in with Google</button>
+</div>
 
-  <!-- USER -->
-  <div class="card hidden" id="userCard">
-    <p id="userName"></p>
-    <button class="secondary" id="logoutBtn">Logout</button>
-  </div>
+<div class="card hidden" id="userCard">
+  <p id="userName"></p>
+  <input id="upiInput" placeholder="Your UPI ID (e.g. name@upi)">
+  <button id="saveUpiBtn" class="secondary">Save UPI</button>
+  <button id="logoutBtn" class="secondary">Logout</button>
+</div>
 
-  <!-- CREATE GROUP -->
-  <div class="card hidden" id="createGroupCard">
-    <h3>Create Group</h3>
-    <input id="groupName" placeholder="Group name" />
-    <button id="createGroupBtn">Create</button>
-  </div>
+<div class="card hidden" id="createGroupCard">
+  <h3>Create Group</h3>
+  <input id="groupName" placeholder="Trip / Flat / Party">
+  <button id="createGroupBtn">Create</button>
+</div>
 
-  <!-- GROUP LIST -->
-  <div class="card hidden" id="groupsCard">
-    <h3>Your Groups</h3>
-    <div id="groupsList"></div>
-  </div>
+<div class="card hidden" id="groupsCard">
+  <h3>Your Groups</h3>
+  <div id="groupsList"></div>
+</div>
 
-  <!-- GROUP DETAILS -->
-  <div class="card hidden" id="groupDetailsCard">
-    <h3 id="currentGroupName"></h3>
+<div class="card hidden" id="groupDetailsCard">
+  <h3 id="currentGroupName"></h3>
 
-    <input id="paymentDesc" placeholder="What did you pay for?" />
-    <input id="paymentAmount" type="number" placeholder="Amount" />
-    <button id="addPaymentBtn">Add Payment</button>
+  <h4>Add Payment</h4>
+  <input id="paymentDesc" placeholder="Description">
+  <input id="paymentAmount" type="number" placeholder="Amount ₹">
+  <button id="addPaymentBtn">Add Payment</button>
 
-    <h4>Payments</h4>
-    <div id="paymentsList" class="small"></div>
-  </div>
-
+  <h4>Balances & Settlement</h4>
+  <div id="balancesList"></div>
+</div>
 </div>
 
 <script type="module">
-  // 🔥 Firebase imports
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, where, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-  // 🔐 Firebase config (YOURS)
-  const firebaseConfig = {
-    apiKey: "AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
-    authDomain: "easysplitter-c5a4c.firebaseapp.com",
-    projectId: "easysplitter-c5a4c",
-    storageBucket: "easysplitter-c5a4c.firebasestorage.app",
-    messagingSenderId: "582888920406",
-    appId: "1:582888920406:web:1d80e0b7b952f97ce9b2f7"
-  };
+const firebaseConfig={
+ apiKey:"AIzaSyD9cLdPpXUoPwZKb8yH8D0i867xZwf3Pww",
+ authDomain:"easysplitter-c5a4c.firebaseapp.com",
+ projectId:"easysplitter-c5a4c",
+ storageBucket:"easysplitter-c5a4c.firebasestorage.app",
+ messagingSenderId:"582888920406",
+ appId:"1:582888920406:web:1d80e0b7b952f97ce9b2f7"
+};
 
-  // Init
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const provider=new GoogleAuthProvider();
 
-  let currentUser = null;
-  let currentGroup = null;
-  let groupUnsubscribe = null;
+let currentUser=null,currentGroup=null;
 
-  // Elements
-  const loginCard = document.getElementById("loginCard");
-  const userCard = document.getElementById("userCard");
-  const createGroupCard = document.getElementById("createGroupCard");
-  const groupsCard = document.getElementById("groupsCard");
-  const groupDetailsCard = document.getElementById("groupDetailsCard");
+const notice=(m,t="success")=>{
+ document.getElementById("notice").innerHTML=`<div class="notice ${t}">${m}</div>`;
+ setTimeout(()=>document.getElementById("notice").innerHTML="",3000);
+};
 
-  // Auth
-  document.getElementById("loginBtn").onclick = () =>
-    signInWithPopup(auth, provider);
+loginBtn.onclick=()=>signInWithPopup(auth,provider);
+logoutBtn.onclick=()=>signOut(auth);
 
-  document.getElementById("logoutBtn").onclick = () =>
-    signOut(auth);
+onAuthStateChanged(auth,async u=>{
+ if(!u) return;
+ currentUser=u;
+ loginCard.classList.add("hidden");
+ userCard.classList.remove("hidden");
+ createGroupCard.classList.remove("hidden");
+ groupsCard.classList.remove("hidden");
+ userName.innerText="👋 "+u.displayName;
 
-  onAuthStateChanged(auth, user => {
-    if (!user) {
-      loginCard.classList.remove("hidden");
-      userCard.classList.add("hidden");
-      createGroupCard.classList.add("hidden");
-      groupsCard.classList.add("hidden");
-      return;
-    }
+ await setDoc(doc(db,"users",u.uid),{name:u.displayName,email:u.email},{merge:true});
+ loadGroups();
+});
 
-    currentUser = user;
-    document.getElementById("userName").innerText = "Hi, " + user.displayName;
+saveUpiBtn.onclick=async()=>{
+ if(!upiInput.value.trim()) return notice("Enter valid UPI","error");
+ await updateDoc(doc(db,"users",currentUser.uid),{upi:upiInput.value});
+ notice("UPI saved");
+};
 
-    loginCard.classList.add("hidden");
-    userCard.classList.remove("hidden");
-    createGroupCard.classList.remove("hidden");
-    groupsCard.classList.remove("hidden");
+createGroupBtn.onclick=async()=>{
+ if(!groupName.value) return notice("Group name required","error");
+ await addDoc(collection(db,"groups"),{name:groupName.value,members:[currentUser.uid]});
+ groupName.value="";
+};
 
-    loadGroups();
+function loadGroups(){
+ const q=query(collection(db,"groups"),where("members","array-contains",currentUser.uid));
+ onSnapshot(q,s=>{
+  groupsList.innerHTML="";
+  s.forEach(d=>{
+   groupsList.innerHTML+=`
+   <div class="group">
+    <span>${d.data().name}</span>
+    <button onclick="openGroup('${d.id}')">Open</button>
+   </div>`;
   });
+ });
+}
 
-  // Create group
-  document.getElementById("createGroupBtn").onclick = async () => {
-    const name = document.getElementById("groupName").value.trim();
-    if (!name) return alert("Enter group name");
+window.openGroup=(id)=>{
+ onSnapshot(doc(db,"groups",id),snap=>{
+  currentGroup={id:snap.id,...snap.data()};
+  currentGroupName.innerText=currentGroup.name;
+  groupDetailsCard.classList.remove("hidden");
+  listenPayments();
+ });
+};
 
-    await addDoc(collection(db, "groups"), {
-      name,
-      members: [currentUser.uid]
-    });
+addPaymentBtn.onclick=async()=>{
+ if(!paymentDesc.value||!paymentAmount.value) return notice("Enter payment","error");
+ await addDoc(collection(db,"groups",currentGroup.id,"payments"),{
+  uid:currentUser.uid,
+  name:currentUser.displayName,
+  desc:paymentDesc.value,
+  amount:Number(paymentAmount.value),
+  time:Date.now()
+ });
+ paymentDesc.value=paymentAmount.value="";
+};
 
-    document.getElementById("groupName").value = "";
-  };
+function listenPayments(){
+ onSnapshot(collection(db,"groups",currentGroup.id,"payments"),snap=>{
+  const totals={};
+  snap.forEach(p=>{
+   const d=p.data();
+   totals[d.uid]=(totals[d.uid]||0)+d.amount;
+  });
+  calculateBalances(totals);
+ });
+}
 
-  // Load groups
-  function loadGroups() {
-    const q = query(
-      collection(db, "groups"),
-      where("members", "array-contains", currentUser.uid)
-    );
-
-    onSnapshot(q, snap => {
-      const list = document.getElementById("groupsList");
-      list.innerHTML = "";
-
-      snap.forEach(docu => {
-        const g = docu.data();
-        const div = document.createElement("div");
-        div.className = "group";
-        div.innerHTML = `
-          <span>${g.name}</span>
-          <button onclick="openGroup('${docu.id}')">Open</button>
-        `;
-        list.appendChild(div);
-      });
-    });
+function calculateBalances(totals){
+ const members=currentGroup.members;
+ const total=Object.values(totals).reduce((a,b)=>a+b,0);
+ const share=total/members.length;
+ balancesList.innerHTML="";
+ members.forEach(uid=>{
+  const diff=(totals[uid]||0)-share;
+  if(uid!==currentUser.uid && diff<0){
+   balancesList.innerHTML+=`
+   <div class="balance">
+    You owe ₹${Math.abs(diff).toFixed(2)}
+    <button class="pay" onclick="requestSettlement('${uid}',${Math.abs(diff)})">Pay via UPI</button>
+   </div>`;
   }
+ });
+}
 
-  // 🔥 FIXED open group
-  window.openGroup = (id) => {
-    if (groupUnsubscribe) groupUnsubscribe();
+window.requestSettlement=async(to,amt)=>{
+ const snap=await fetchUser(to);
+ const upi=snap.upi||"";
+ window.location.href=`upi://pay?pa=${upi}&pn=EasySplitter&am=${amt}`;
+ await addDoc(collection(db,"groups",currentGroup.id,"settlements"),{
+  from:currentUser.uid,
+  to,
+  amount:amt,
+  status:"pending",
+  time:Date.now()
+ });
+ notice("Payment requested. Await confirmation.");
+};
 
-    const ref = doc(db, "groups", id);
-    groupUnsubscribe = onSnapshot(ref, snap => {
-      currentGroup = { id: snap.id, ...snap.data() };
-      document.getElementById("currentGroupName").innerText = currentGroup.name;
-      groupDetailsCard.classList.remove("hidden");
-    });
-  };
-
-  // Add payment
-  document.getElementById("addPaymentBtn").onclick = async () => {
-    if (!currentGroup) return;
-
-    const desc = document.getElementById("paymentDesc").value;
-    const amt = Number(document.getElementById("paymentAmount").value);
-
-    if (!desc || !amt) return alert("Enter details");
-
-    await addDoc(collection(db, "groups", currentGroup.id, "payments"), {
-      desc,
-      amount: amt,
-      paidBy: currentUser.displayName,
-      uid: currentUser.uid,
-      time: Date.now()
-    });
-
-    document.getElementById("paymentDesc").value = "";
-    document.getElementById("paymentAmount").value = "";
-  };
-
-  // Payments listener
-  onSnapshot(collection(db, "groups"), () => {
-    if (!currentGroup) return;
-
-    onSnapshot(
-      collection(db, "groups", currentGroup.id, "payments"),
-      snap => {
-        const list = document.getElementById("paymentsList");
-        list.innerHTML = "";
-        snap.forEach(p => {
-          const d = p.data();
-          list.innerHTML += `<div>${d.paidBy}: ₹${d.amount} (${d.desc})</div>`;
-        });
-      }
-    );
-  });
-
+async function fetchUser(uid){
+ const s=await fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${uid}`);
+ return (await s.json()).fields?{upi:(await s.json()).fields.upi.stringValue}:"";
+}
 </script>
-
 </body>
 </html>
-
